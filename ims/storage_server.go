@@ -4,8 +4,13 @@ import "github.com/valyala/gorpc"
 import log "github.com/sirupsen/logrus"
 
 var storage *Storage
+var config *StorageConfig
 
 func main() {
+
+	config = readStorageConf()
+	storage = NewStorage(config.storageRoot)
+
 	ListenRPCClient()
 }
 

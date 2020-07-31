@@ -7,6 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -22,6 +25,33 @@ type StorageFile struct {
 	dirty   bool     //是否有新的写入
 	blockNo int      // 消息持久化文件的id
 	file    *os.File // 持久化文件，名称和blockNo有关
+}
+
+func NewStorageFile(root string) *StorageFile {
+	storage := new(StorageFile)
+	storage.root = root
+
+	pattern := fmt.Sprintf("%s/message_*", storage.root)
+	files, _ := filepath.Glob(pattern)
+	blockNo := 0 // 默认从0开始
+
+	// 查找最新的block文件
+	for _, f := range files {
+		base := filepath.Base(f)
+		if strings.HasPrefix(base, "message_") {
+			b, err := strconv.ParseInt(base[8:], 10, 64)
+			if err != nil {
+				log.Fatal("invalid message file:", f)
+			}
+
+			if int(b) > blockNo {
+				blockNo = int(b)
+			}
+		}
+	}
+
+	storage.openWriteFile(blockNo)
+	return storage
 }
 
 func (storage *StorageFile) saveMessage(msg *Message) int64 {

@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"bytes"
@@ -6,6 +6,10 @@ import (
 )
 
 const MSG_IM = 4
+
+
+const MSG_AUTH_STATUS  = 3
+const MSG_AUTH_TOKEN = 15
 
 type MessageCreator func() IMessage
 
@@ -16,6 +20,8 @@ type VersionMessageCreator func() IVersionMessage
 var vmessage_creators map[int]VersionMessageCreator = make(map[int]VersionMessageCreator)
 
 func init() {
+	message_creators[MSG_AUTH_TOKEN] = func() IMessage { return new(AuthenticationToken) }
+	message_creators[MSG_AUTH_STATUS] = func() IMessage { return new(AuthenticationStatus) }
 	vmessage_creators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 }
 
@@ -56,13 +62,13 @@ func (message *Message) FromData(buff []byte) bool {
 	if creator, ok := message_creators[cmd]; ok {
 		c := creator()
 		r := c.FromData(buff)
-		message.body = r
+		message.body = c
 		return r
 	}
 	if creator, ok := vmessage_creators[cmd]; ok {
 		c := creator()
 		r := c.FromData(message.version, buff)
-		message.body = r
+		message.body = c
 		return r
 	}
 	return len(buff) == 0
@@ -155,6 +161,80 @@ func (m *IMMessage) FromDataV2(buff []byte) bool {
 	m.content = string(buff[24:])
 	return true
 }
+
+
+type AuthenticationToken struct {
+	token      string
+	platformId int8
+	deviceId   string
+}
+
+func (auth *AuthenticationToken) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, auth.platformId)
+
+	l := int8(len(auth.token))
+	binary.Write(buffer, binary.BigEndian, l)
+	buffer.Write([]byte(auth.token))
+
+	l = int8(len(auth.deviceId))
+	binary.Write(buffer, binary.BigEndian, l)
+	buffer.Write([]byte(auth.deviceId))
+
+	return buffer.Bytes()
+}
+
+func (auth *AuthenticationToken) FromData(buff []byte) bool {
+	if len(buff) <= 3 {
+		return false
+	}
+
+	auth.platformId = int8(buff[0])
+
+	buffer := bytes.NewBuffer(buff[1:])
+
+	var l uint8
+	binary.Read(buffer, binary.BigEndian, &l)
+	if int(l) > buffer.Len() || int(l) < 0 {
+		return false
+	}
+	token := make([]byte, l)
+	buffer.Read(token)
+
+	binary.Read(buffer, binary.BigEndian, &l)
+	if int(l) > buffer.Len() || int(l) < 0 {
+		return false
+	}
+
+	deviceId :=  make([]byte, l)
+	buffer.Read(deviceId)
+
+	auth.token = string(token)
+	auth.deviceId = string(deviceId)
+	return true
+}
+
+
+type AuthenticationStatus struct {
+	status int32
+}
+
+func (auth *AuthenticationStatus) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, auth.status)
+	buf := buffer.Bytes()
+	return buf
+}
+
+func (auth *AuthenticationStatus) FromData(buff []byte) bool {
+	if len(buff) < 4 {
+		return false
+	}
+	buffer := bytes.NewBuffer(buff)
+	binary.Read(buffer, binary.BigEndian, &auth.status)
+	return true
+}
+
 
 
 

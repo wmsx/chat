@@ -23,6 +23,12 @@ type PeerStorage struct {
 	messageIndex map[UserId]*UserIndex
 }
 
+func NewPeerStorage(f *StorageFile) *PeerStorage {
+	storage := &PeerStorage{StorageFile: f}
+	storage.messageIndex = make(map[UserId]*UserIndex)
+	return storage
+}
+
 func (storage *PeerStorage) SavePeerMessage(appId, receiver, deviceId int64, msg *Message) (int64, int64) {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()

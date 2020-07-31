@@ -1,1 +1,53 @@
 package main
+
+import (
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+	"net"
+	"time"
+)
+
+const CLIENT_TIMEOUT = 6 * 60
+
+type Connection struct {
+	conn interface{}
+
+	wt chan *Message
+
+	sequence int // 发送给客户端的消息序号
+
+	appId      int64
+	uid        int64
+	deviceId   string
+	deviceID   int64
+	platformId int8
+}
+
+func (client *Connection) read() *Message {
+	if conn, ok := client.conn.(net.Conn); ok {
+		conn.SetReadDeadline(time.Now().Add(CLIENT_TIMEOUT * time.Second))
+		return ReceiveClientMessage(conn)
+	} else if conn, ok := client.conn.(*websocket.Conn); ok {
+		conn.SetReadDeadline(time.Now().Add(CLIENT_TIMEOUT * time.Second))
+		//return ReadWebsocketMessage(conn)
+	}
+	return nil
+}
+
+func (client *Connection) EnqueueMessage(msg *Message) bool {
+	select {
+	case client.wt <- msg:
+		return true
+	case <-time.After(60 * time.Second):
+		log.Infof("send message to wt timed out:%d", client.uid)
+		return false
+	}
+}
+
+func (client *Connection) close() {
+	if conn, ok := client.conn.(net.Conn); ok {
+		conn.Close()
+	} else if conn, ok := client.conn.(*websocket.Conn); !ok {
+		conn.Close()
+	}
+}
