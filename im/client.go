@@ -15,6 +15,7 @@ const PLATFORM_WEB = 3
 type Client struct {
 	Connection
 	*PeerClient
+	*GroupClient
 }
 
 func NewClient(conn interface{}) *Client {
@@ -27,6 +28,7 @@ func NewClient(conn interface{}) *Client {
 	client.pwt = make(chan []*Message, 10)
 
 	client.PeerClient = &PeerClient{&client.Connection}
+	client.GroupClient = &GroupClient{Connection: &client.Connection}
 	return client
 }
 
@@ -133,6 +135,7 @@ func (client *Client) HandleMessage(msg *Message) {
 	}
 
 	client.PeerClient.HandleMessage(msg)
+	client.GroupClient.HandleMessage(msg)
 }
 
 func (client *Client) HandlePing() {
@@ -170,6 +173,8 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 
 	msg := &Message{cmd: MSG_AUTH_STATUS, version: version, body: &AuthenticationStatus{0}}
 	client.EnqueueMessage(msg)
+
+	client.PeerClient.Login()
 }
 
 func (client *Client) AuthToken(token string) (int64, int64, int, bool, error) {

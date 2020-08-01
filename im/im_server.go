@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/gorpc"
+	"path"
 	"time"
 )
 import "github.com/gomodule/redigo/redis"
@@ -11,6 +13,12 @@ var config *Config
 var redisPool *redis.Pool
 var rpcClients []*gorpc.DispatcherClient
 var syncChan chan *SyncHistory
+
+//round-robin
+var currentDeliverIndex uint64
+var groupMessageDelivers []*GroupMessageDeliver
+
+var  groupManager *GroupManager
 
 func init() {
 	syncChan = make(chan *SyncHistory, 100)
@@ -31,12 +39,26 @@ func main() {
 			dispatcher := gorpc.NewDispatcher()
 			dispatcher.AddFunc("SyncMessage", SyncMessageInterface)
 			dispatcher.AddFunc("SavePeerMessage", SavePeerMessageInterface)
+			dispatcher.AddFunc("SavePeerGroupMessage", SavePeerGroupMessageInterface)
 
 			dc := dispatcher.NewFuncClient(c)
 			rpcClients = append(rpcClients, dc)
 		}
 	}
 
+	if len(config.mysqlDatasource) > 0 {
+		groupManager = NewGroupManager()
+		groupManager.Start()
+	}
+
+	groupMessageDelivers = make([]*GroupMessageDeliver, config.groupDeliverCount)
+	for i := 0; i < config.groupDeliverCount; i++ {
+		q := fmt.Sprintf("q%d", i)
+		r :=  path.Join(config.pendingRoot, q)
+		deliver := NewGroupMessageDeliver(r)
+		deliver.Start()
+		groupMessageDelivers[i] = deliver
+	}
 	go SyncKeyService()
 
 	ListenClient(config.port)

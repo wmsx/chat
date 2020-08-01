@@ -8,6 +8,8 @@ import (
 const MSG_IM = 4
 const MSG_ACK = 5
 
+const MSG_GROUP_IM = 8
+
 const MSG_PING = 13
 const MSG_PONG = 14
 

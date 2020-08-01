@@ -92,3 +92,10 @@ func SendMessage(conn io.Writer, msg *Message) error {
 	}
 	return nil
 }
+
+
+//消息大小限制在1M
+func ReceiveStorageMessage(conn io.Reader) *Message {
+	m, _ := ReceiveLimitMessage(conn, 1024*1024, false)
+	return m
+}

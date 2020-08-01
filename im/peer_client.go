@@ -6,6 +6,10 @@ type PeerClient struct {
 	*Connection
 }
 
+func (client *PeerClient) Login() {
+
+}
+
 func (client *PeerClient) HandleMessage(msg *Message) {
 	switch msg.cmd {
 	case MSG_IM:

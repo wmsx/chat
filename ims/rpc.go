@@ -25,3 +25,10 @@ func SyncMessage(addr string, syncKey *SyncHistory) *PeerHistoryMessage {
 
 	return &PeerHistoryMessage{Messages: historyMessages, LastMsgId: lastMsgId, HasMore: hasMore}
 }
+
+func SavePeerGroupMessage(addr string, m *PeerGroupMessage) ([]int64, error) {
+	msg := &Message{cmd: int(m.Cmd), version: DEFAULT_VERSION}
+	msg.FromData(m.Raw)
+	r := storage.SavePeerGroupMessage(m.AppId, m.Members, m.DeviceID, msg)
+	return r, nil
+}

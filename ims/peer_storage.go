@@ -79,6 +79,16 @@ func (storage *PeerStorage) SavePeerMessage(appId, receiver, deviceID int64, msg
 	return msgId, userIndex.lastMsgId
 }
 
+func (storage *PeerStorage) SavePeerGroupMessage(appId int64, members []int64, deviceID int64, msg *Message) []int64 {
+	r := make([]int64, 0, len(members)*2)
+	for _, receiver := range members {
+		msgId, prevMsgId := storage.SavePeerMessage(appId, receiver, deviceID, msg)
+		r = append(r, msgId)
+		r = append(r, prevMsgId)
+	}
+	return r
+}
+
 func (storage *PeerStorage) isGroupMessage(msg *Message) bool {
 	return msg.cmd == MSG_GROUP_IM || msg.flag&MESSAGE_FLAG_GROUP != 0
 }
