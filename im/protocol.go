@@ -11,6 +11,8 @@ import (
 
 const DEFAULT_VERSION = 2
 
+const MSG_HEADER_SIZE = 12
+
 func ReceiveClientMessage(conn io.Reader) *Message {
 	m, _ := ReceiveLimitMessage(conn, 32*1024, true)
 	return m

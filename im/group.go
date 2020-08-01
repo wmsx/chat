@@ -23,6 +23,10 @@ func (group *Group) GetMemberMute(uid int64) bool {
 	return int((t>>31)&0x01) != 0
 }
 
+func (group *Group) Members() map[int64]int64 {
+	return group.members
+}
+
 func NewGroup(gid int64, appId int64, members map[int64]int64) *Group {
 	return &Group{
 		gid:     gid,

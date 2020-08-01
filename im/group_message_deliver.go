@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -34,6 +35,11 @@ type GroupMessageDeliver struct {
 
 	//保证单个群组结构只会在一个线程中被加载
 	lt chan *GroupLoader //加载group结构到内存
+
+	callbackMutex    sync.Mutex               // callback变量的锁
+	id               int64                    //自增的callback id
+	callbacks        map[int64]chan *Metadata //返回保存到ims的消息id
+	callbackId2msgId map[int64]int64          //callback -> msgId
 }
 
 func NewGroupMessageDeliver(root string) *GroupMessageDeliver {
@@ -205,6 +211,7 @@ func (storage *GroupMessageDeliver) sendPendingMessage() {
 			log.Warning("send group message failure")
 			break
 		}
+		storage.DoCallback(msgId, meta)
 		storage.latestSentMsgId = msgId
 	}
 }
@@ -213,7 +220,6 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 	msg := &IMMessage{sender: gm.sender, receiver: gm.gid, timestamp: gm.timestamp, content: gm.content}
 	m := &Message{cmd: MSG_GROUP_IM, version: DEFAULT_VERSION, body: msg}
 
-	metadata := &Metadata{}
 	batchMembers := make(map[int64][]int64)
 
 	for _, member := range gm.members {
@@ -227,13 +233,46 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 		}
 	}
 
+	metadata := &Metadata{}
 	for _, mb := range batchMembers {
 		r, err := SavePeerGroupMessage(gm.appId, mb, gm.deviceID, m)
 		if err != nil {
 			log.Errorf("save peer group message:%d %d err:%s", gm.sender, gm.gid, err)
 			return nil, false
 		}
+		if len(r) != len(mb)*2 {
+			log.Errorf("save peer group message err:%d %d", len(r), len(mb))
+			return nil, false
+		}
+		for i := 0; i < len(r); i += 2 {
+			msgId, prevMsgId := r[i], r[i+1]
+			member := mb[i/2]
+			meta := &Metadata{syncKey: msgId, prevSyncKey: prevMsgId}
+			mm := &Message{cmd: MSG_GROUP_IM, version: DEFAULT_VERSION, flag: MESSAGE_FLAG_PUSH, body: msg, meta: meta}
+			storage.sendMessage(gm.appId, member, gm.sender, gm.deviceID, mm)
+
+			notify := &Message{cmd: MSG_SYNC_NOTIFY, body: &SyncKey{syncKey: msgId}}
+			storage.sendMessage(gm.appId, member, gm.sender, gm.deviceID, notify)
+
+			if member == gm.sender {
+				metadata.syncKey = msgId
+				metadata.prevSyncKey = prevMsgId
+			}
+		}
 	}
+
+	groupMembers := make(map[int64]int64)
+	for _, member := range gm.members {
+		groupMembers[member] = 0
+	}
+	//group := NewGroup(gm.gid, gm.appId, groupMembers)
+	//PushGroupMessage(gm.appId, group, m)
+	return metadata, true
+}
+
+func (storage *GroupMessageDeliver) sendMessage(appId, uid, sender, deviceID int64, msg *Message) bool {
+
+	return true
 }
 
 func (storage *GroupMessageDeliver) ReadMessage(file *os.File) *Message {
@@ -302,4 +341,85 @@ func (storage *GroupMessageDeliver) LoadGroup(groupId int64) *Group {
 
 	group = <-groupLoader.c
 	return group
+}
+
+func (storage *GroupMessageDeliver) SaveMessage(msg *Message, ch chan *Metadata) int64 {
+	storage.mutex.Lock()
+	defer storage.mutex.Unlock()
+
+	msgId := storage.saveMessage(msg)
+	atomic.StoreInt64(&storage.latestMsgId, msgId)
+
+	var callbackId int64
+	if ch != nil {
+		callbackId = storage.AddCallback(msgId, ch)
+	}
+
+	select {
+	case storage.wt <- msgId:
+	default:
+	}
+	return callbackId
+}
+
+//save without lock
+func (storage *GroupMessageDeliver) saveMessage(msg *Message) int64 {
+	msgId, err := storage.file.Seek(0, os.SEEK_END)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, int32(MAGIC))
+
+	body := msg.ToData()
+	var msgLen = MSG_HEADER_SIZE + int32(len(body))
+	binary.Write(buffer, binary.BigEndian, msgLen)
+
+	WriteHeader(int32(len(body)), int32(msg.seq), byte(msg.cmd),
+		byte(msg.version), byte(msg.flag), buffer)
+	buffer.Write(body)
+
+	binary.Write(buffer, binary.BigEndian, msgLen)
+	binary.Write(buffer, binary.BigEndian, int32(MAGIC))
+	buf := buffer.Bytes()
+
+	n, err := storage.file.Write(buf)
+	if err != nil {
+		log.Fatal("file write err:", err)
+	}
+	if n != len(buf) {
+		log.Fatal("file write size:", len(buf), " nwrite:", n)
+	}
+
+	log.Info("save message:", Command(msg.cmd), " ", msgId)
+	return msgId
+}
+
+func (storage *GroupMessageDeliver) AddCallback(msgId int64, ch chan *Metadata) int64 {
+	storage.callbackMutex.Lock()
+	defer storage.callbackMutex.Unlock()
+	storage.id += 1
+	storage.callbacks[msgId] = ch
+	storage.callbackId2msgId[storage.id] = msgId
+	return storage.id
+}
+
+func (storage *GroupMessageDeliver) RemoveCallback(callbackId int64) {
+	storage.callbackMutex.Lock()
+	defer storage.callbackMutex.Unlock()
+
+	if msgId, ok := storage.callbackId2msgId[callbackId]; ok {
+		delete(storage.callbackId2msgId, callbackId)
+		delete(storage.callbacks, msgId)
+	}
+}
+
+func (storage *GroupMessageDeliver) DoCallback(msgId int64, meta *Metadata) {
+	storage.callbackMutex.Lock()
+	defer storage.callbackMutex.Unlock()
+
+	if ch, ok := storage.callbacks[msgId]; ok {
+		ch <- meta
+	}
 }

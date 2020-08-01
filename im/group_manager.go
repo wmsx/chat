@@ -15,7 +15,7 @@ type GroupManager struct {
 
 func NewGroupManager() *GroupManager {
 	m := new(GroupManager)
-	m.group = make(map[int64]*Group)
+	m.groups = make(map[int64]*Group)
 
 	db, err := sql.Open("mysql", config.mysqlDatasource)
 	if err != nil {

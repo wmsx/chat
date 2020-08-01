@@ -5,6 +5,15 @@ import (
 	"encoding/binary"
 )
 
+//离线消息由当前登录的用户在当前设备发出 c <- s
+const MESSAGE_FLAG_SELF = 0x08
+
+//消息由服务器主动推到客户端 c <- s
+const MESSAGE_FLAG_PUSH = 0x10
+
+//超级群消息 c <- s
+const MESSAGE_FLAG_SUPER_GROUP = 0x20
+
 const MSG_IM = 4
 const MSG_ACK = 5
 

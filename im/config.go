@@ -50,7 +50,7 @@ func readConfig() *Config{
 	config.storageRpcAddrs = []string{"127.0.0.1:13333"}
 
 	config.groupDeliverCount = 4
-	config.pendingRoot = "/tmp/pending"
+	config.pendingRoot = "/Users/zengqiang96/im/pending"
 
 	return config
 }
