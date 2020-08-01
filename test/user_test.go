@@ -31,7 +31,6 @@ func TestAuth(t *testing.T) {
 	}
 	defer conn.Close()
 
-	messageChan := make(chan *Message, 1)
 
 	auth := &AuthenticationToken{token: "zxcvbnm", platformId: PLATFORM_IOS, deviceId: "deviceId"}
 
@@ -42,6 +41,8 @@ func TestAuth(t *testing.T) {
 	conn.Write(buffer.Bytes())
 
 	r := ReceiveClientMessage(conn)
+
+	messageChan := make(chan *Message, 1)
 	messageChan <- r
 
 	select {
@@ -58,6 +59,8 @@ func TestAuth(t *testing.T) {
 		fmt.Println("timeout")
 	}
 }
+
+
 
 func initRedisPool(server, password string, db int) {
 	redisPool = &redis.Pool{

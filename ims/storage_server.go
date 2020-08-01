@@ -16,10 +16,11 @@ func main() {
 
 func ListenRPCClient() {
 	dispatcher := gorpc.NewDispatcher()
+	dispatcher.AddFunc("SyncMessage", SyncMessage)
 	dispatcher.AddFunc("SavePeerMessage", SavePeerMessage)
 
 	s := gorpc.Server{
-		Addr:    ":13333",
+		Addr:    config.rpcListen,
 		Handler: dispatcher.NewHandlerFunc(),
 	}
 

@@ -14,7 +14,11 @@ type Connection struct {
 
 	wt chan *Message
 
+	// 离线消息
+	pwt chan []*Message
+
 	sequence int // 发送给客户端的消息序号
+	version  int //客户端协议版本号
 
 	appId      int64
 	uid        int64
@@ -40,6 +44,16 @@ func (client *Connection) EnqueueMessage(msg *Message) bool {
 		return true
 	case <-time.After(60 * time.Second):
 		log.Infof("send message to wt timed out:%d", client.uid)
+		return false
+	}
+}
+
+func (client *Connection) EnqueueMessages(msgs []*Message) bool {
+	select {
+	case client.pwt <- msgs:
+		return true
+	case <-time.After(60 * time.Second):
+		log.Infof("send messages to pwt timed out:%d", client.uid)
 		return false
 	}
 }

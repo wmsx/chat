@@ -23,6 +23,7 @@ type StorageConfig struct {
 
 func readStorageConf() *StorageConfig {
 	return &StorageConfig{
-		storageRoot: "/tmp/im",
+		rpcListen: ":13333",
+		storageRoot: "/Users/zengqiang96/ims",
 	}
 }

@@ -7,6 +7,15 @@ import (
 
 const MSG_IM = 4
 
+
+const MSG_GROUP_IM = 8
+//群组消息 c -> s
+const MESSAGE_FLAG_GROUP = 0x04
+
+
+//个人消息队列
+const MSG_OFFLINE = 248
+
 type MessageCreator func() IMessage
 
 var message_creators map[int]MessageCreator = make(map[int]MessageCreator)
@@ -130,7 +139,6 @@ func (m *IMMessage) ToDataV2() []byte {
 	return buf
 }
 
-
 func (m *IMMessage) FromDataV0(buff []byte) bool {
 	if len(buff) < 20 {
 		return false
@@ -156,5 +164,43 @@ func (m *IMMessage) FromDataV2(buff []byte) bool {
 	return true
 }
 
+type OfflineMessage struct {
+	appId          int64
+	receiver       int64 //用户id or 群组id
+	msgId          int64 //消息本体的id
+	deviceID       int64
+	seqId          int64 //消息序号, 1,2,3...
+	prevMsgId      int64 //个人消息队列(点对点消息，群组消息)
+	prevPeerMsgId  int64 //点对点消息队列
+	prevBatchMsgId int64 //0<-1000<-2000<-3000...构成一个消息队列
+}
 
+func (off *OfflineMessage) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, off.appId)
+	binary.Write(buffer, binary.BigEndian, off.receiver)
+	binary.Write(buffer, binary.BigEndian, off.msgId)
+	binary.Write(buffer, binary.BigEndian, off.deviceID)
+	binary.Write(buffer, binary.BigEndian, off.seqId)
+	binary.Write(buffer, binary.BigEndian, off.prevMsgId)
+	binary.Write(buffer, binary.BigEndian, off.prevPeerMsgId)
+	binary.Write(buffer, binary.BigEndian, off.prevBatchMsgId)
+	return buffer.Bytes()
+}
+
+func (off *OfflineMessage) FromData(buff []byte) bool {
+	if len(buff) < 64 {
+		return false
+	}
+	buffer := bytes.NewBuffer(buff)
+	binary.Read(buffer, binary.BigEndian, &off.appId)
+	binary.Read(buffer, binary.BigEndian, &off.receiver)
+	binary.Read(buffer, binary.BigEndian, &off.msgId)
+	binary.Read(buffer, binary.BigEndian, &off.deviceID)
+	binary.Read(buffer, binary.BigEndian, &off.seqId)
+	binary.Read(buffer, binary.BigEndian, &off.prevMsgId)
+	binary.Read(buffer, binary.BigEndian, &off.prevPeerMsgId)
+	binary.Read(buffer, binary.BigEndian, &off.prevBatchMsgId)
+	return true
+}
 

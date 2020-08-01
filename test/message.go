@@ -6,23 +6,25 @@ import (
 )
 
 const MSG_IM = 4
+const MSG_ACK = 5
 
-
-const MSG_AUTH_STATUS  = 3
+const MSG_AUTH_STATUS = 3
 const MSG_AUTH_TOKEN = 15
 
 type MessageCreator func() IMessage
 
-var message_creators map[int]MessageCreator = make(map[int]MessageCreator)
+var messageCreators map[int]MessageCreator = make(map[int]MessageCreator)
 
 type VersionMessageCreator func() IVersionMessage
 
-var vmessage_creators map[int]VersionMessageCreator = make(map[int]VersionMessageCreator)
+var vmessageCreators map[int]VersionMessageCreator = make(map[int]VersionMessageCreator)
 
 func init() {
-	message_creators[MSG_AUTH_TOKEN] = func() IMessage { return new(AuthenticationToken) }
-	message_creators[MSG_AUTH_STATUS] = func() IMessage { return new(AuthenticationStatus) }
-	vmessage_creators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
+	messageCreators[MSG_AUTH_TOKEN] = func() IMessage { return new(AuthenticationToken) }
+	messageCreators[MSG_AUTH_STATUS] = func() IMessage { return new(AuthenticationStatus) }
+
+	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
+	vmessageCreators[MSG_ACK] = func() IVersionMessage { return new(MessageACK) }
 }
 
 type Command int
@@ -59,13 +61,13 @@ func (message *Message) ToData() []byte {
 
 func (message *Message) FromData(buff []byte) bool {
 	cmd := message.cmd
-	if creator, ok := message_creators[cmd]; ok {
+	if creator, ok := messageCreators[cmd]; ok {
 		c := creator()
 		r := c.FromData(buff)
 		message.body = c
 		return r
 	}
-	if creator, ok := vmessage_creators[cmd]; ok {
+	if creator, ok := vmessageCreators[cmd]; ok {
 		c := creator()
 		r := c.FromData(message.version, buff)
 		message.body = c
@@ -136,7 +138,6 @@ func (m *IMMessage) ToDataV2() []byte {
 	return buf
 }
 
-
 func (m *IMMessage) FromDataV0(buff []byte) bool {
 	if len(buff) < 20 {
 		return false
@@ -161,7 +162,6 @@ func (m *IMMessage) FromDataV2(buff []byte) bool {
 	m.content = string(buff[24:])
 	return true
 }
-
 
 type AuthenticationToken struct {
 	token      string
@@ -206,14 +206,13 @@ func (auth *AuthenticationToken) FromData(buff []byte) bool {
 		return false
 	}
 
-	deviceId :=  make([]byte, l)
+	deviceId := make([]byte, l)
 	buffer.Read(deviceId)
 
 	auth.token = string(token)
 	auth.deviceId = string(deviceId)
 	return true
 }
-
 
 type AuthenticationStatus struct {
 	status int32
@@ -235,6 +234,26 @@ func (auth *AuthenticationStatus) FromData(buff []byte) bool {
 	return true
 }
 
+type MessageACK struct {
+	seq    int32
+	status int8
+}
 
+func (ack *MessageACK) ToData(version int) []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, ack.seq)
+	if version > 1 {
+		binary.Write(buffer, binary.BigEndian, ack.status)
+	}
+	buf := buffer.Bytes()
+	return buf
+}
 
-
+func (ack *MessageACK) FromData(version int, buff []byte) bool {
+	buffer := bytes.NewBuffer(buff)
+	binary.Read(buffer, binary.BigEndian, &ack.seq)
+	if version > 1 {
+		binary.Read(buffer, binary.BigEndian, &ack.status)
+	}
+	return true
+}

@@ -24,6 +24,8 @@ func NewClient(conn interface{}) *Client {
 
 	client.wt = make(chan *Message, 300) // write的Message chan，client close的时候需要将wt中的消息发送完
 
+	client.pwt = make(chan []*Message, 10)
+
 	client.PeerClient = &PeerClient{&client.Connection}
 	return client
 }
@@ -84,7 +86,19 @@ func (client *Client) Write() {
 				log.Infof("client:%d socket closed", client.uid)
 				break
 			}
+			if msg.meta != nil {
+				metaMsg := &Message{cmd: MSG_METADATA, version: client.version, body: msg.meta}
+				client.send(metaMsg)
+			}
 			client.send(msg)
+		case msgs := <-client.pwt:
+			for _, msg := range msgs {
+				if msg.meta != nil {
+					metaMsg := &Message{cmd: MSG_METADATA, version: client.version, body: msg.meta}
+					client.send(metaMsg)
+				}
+				client.send(msg)
+			}
 		}
 	}
 }
@@ -114,9 +128,19 @@ func (client *Client) HandleMessage(msg *Message) {
 	switch msg.cmd {
 	case MSG_AUTH_TOKEN:
 		client.HandleAuthToken(msg.body.(*AuthenticationToken), msg.version)
+	case MSG_PING:
+		client.HandlePing()
 	}
 
 	client.PeerClient.HandleMessage(msg)
+}
+
+func (client *Client) HandlePing() {
+	m := &Message{cmd: MSG_PONG}
+	client.EnqueueMessage(m)
+	if client.uid == 0 {
+		log.Warning("client has't been authenticated")
+	}
 }
 
 func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
@@ -142,6 +166,7 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 	client.uid = uid
 	client.deviceId = login.deviceId
 	client.platformId = login.platformId
+	client.version = version
 
 	msg := &Message{cmd: MSG_AUTH_STATUS, version: version, body: &AuthenticationStatus{0}}
 	client.EnqueueMessage(msg)

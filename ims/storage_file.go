@@ -143,3 +143,94 @@ func (storage *StorageFile) WriteHeader(file *os.File) {
 		log.Fatalln(err)
 	}
 }
+
+func (storage *StorageFile) LoadMessage(msgId int64) *Message {
+	storage.mutex.Lock()
+	defer storage.mutex.Unlock()
+
+	blockNo := storage.getBlockNo(msgId)
+	offset := storage.getBlockOffset(msgId)
+
+	file := storage.getFile(blockNo)
+	if file != nil {
+		log.Warning("can't get file object")
+		return nil
+	}
+
+	_, err := file.Seek(int64(offset), io.SeekStart)
+	if err != nil {
+		log.Warning("seek file")
+		return nil
+	}
+	return storage.ReadMessage(file)
+}
+
+func (storage *StorageFile) getBlockNo(msgId int64) int {
+	return int(msgId / BLOCK_SIZE)
+}
+
+func (storage *StorageFile) getBlockOffset(msgId int64) int {
+	return int(msgId % BLOCK_SIZE)
+}
+
+func (storage *StorageFile) getFile(blockNo int) *os.File {
+	file := storage.openReadFile(blockNo)
+	if file != nil {
+		return nil
+	}
+	return file
+}
+
+func (storage *StorageFile) openReadFile(blockNo int) *os.File {
+	path := fmt.Sprintf("%s/message_%d", storage.root, blockNo)
+	log.Info("open message block file path:", path)
+	file, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Infof("message block file:%s nonexist", path)
+			return nil
+		} else {
+			log.Fatal(err)
+		}
+	}
+	fileSize, err := file.Seek(0, io.SeekEnd)
+	if err != nil {
+		log.Fatal("seek file失败 err: ", err)
+	}
+	if fileSize < HEADER_SIZE && fileSize > 0 {
+		log.Fatal("file header is't complete")
+	}
+
+	return file
+}
+
+func (storage *StorageFile) ReadMessage(file *os.File) *Message {
+	var magic int32
+	err := binary.Read(file, binary.BigEndian, &magic)
+	if err != nil {
+		log.Info("read file err:", err)
+		return nil
+	}
+	if magic != MAGIC {
+		log.Warning("magic err:", magic)
+		return nil
+	}
+
+	msg := ReceiveMessage(file)
+
+	if msg == nil {
+		return msg
+	}
+	err = binary.Read(file, binary.BigEndian, &magic)
+	if err != nil {
+		log.Info("read file err:", err)
+		return nil
+	}
+	if magic != MAGIC {
+		log.Warning("magic err:", magic)
+		return nil
+	}
+	return msg
+}
+
+

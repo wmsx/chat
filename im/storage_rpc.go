@@ -1,16 +1,12 @@
 package main
 
-// storage rpc的接口定义文件
-
-// 点对点消息
 type PeerMessage struct {
 	AppID    int64
-	UID      int64
+	Uid      int64
 	DeviceID int64
 	Cmd      int32
 	Raw      []byte
 }
-
 
 type SyncHistory struct {
 	AppID     int64

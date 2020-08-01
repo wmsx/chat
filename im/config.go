@@ -47,5 +47,7 @@ func readConfig() *Config{
 	config.redisAddress = "127.0.0.1:6379"
 	config.redisPassword = "mingchaonaxieshi"
 
+	config.storageRpcAddrs = []string{"127.0.0.1:13333"}
+
 	return config
 }
