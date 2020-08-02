@@ -1,8 +1,18 @@
 package main
 
-import log "github.com/sirupsen/logrus"
+import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"io"
+	"os"
+	"time"
+)
 
 const BATCH_SIZE = 1000
+
+const PEER_INDEX_FILE_NAME = "peer_index.v3"
 
 type UserId struct {
 	appId int64
@@ -75,6 +85,7 @@ func (storage *PeerStorage) SavePeerMessage(appId, receiver, deviceID int64, msg
 	}
 
 	ui := &UserIndex{lastMsgId: msgId, lastId: lastId, lastPeerId: lastPeerId, lastBatchId: lastBatchId, lastSeqId: lastSeqId}
+	log.Info("receiver: ", receiver, " userIndex: ", ui)
 	storage.setPeerIndex(appId, receiver, ui)
 	return msgId, userIndex.lastMsgId
 }
@@ -103,6 +114,10 @@ func (storage *PeerStorage) getPeerIndex(appId, receiver int64) *UserIndex {
 func (storage *PeerStorage) setPeerIndex(appId, receiver int64, ui *UserIndex) {
 	id := UserId{appId, receiver}
 	storage.messageIndex[id] = ui
+
+	if ui.lastId > storage.lastId {
+		storage.lastId = ui.lastId
+	}
 }
 
 func (storage *PeerStorage) LoadHistoryMessages(appId int64, receiver int64, syncMsgId int64, limit int, hardLimit int) ([]*EMessage, int64, bool) {
@@ -154,6 +169,10 @@ func (storage *PeerStorage) LoadHistoryMessages(appId int64, receiver int64, syn
 	messages := make([]*EMessage, 0, 10)
 	for {
 		msg := storage.LoadMessage(lastId)
+		if msg == nil {
+			break
+		}
+
 		off, ok := msg.body.(*OfflineMessage)
 		if !ok {
 			log.Warning("invalid message cmd:", msg.cmd)
@@ -165,7 +184,7 @@ func (storage *PeerStorage) LoadHistoryMessages(appId int64, receiver int64, syn
 			lastOfflineMsgId = lastId
 		}
 
-		if off.msgId < syncMsgId {
+		if off.msgId <= syncMsgId {
 			break
 		}
 
@@ -182,7 +201,7 @@ func (storage *PeerStorage) LoadHistoryMessages(appId int64, receiver int64, syn
 		lastId = off.prevMsgId
 	}
 
-	if len(messages) < 1000 {
+	if len(messages) > 1000 {
 		log.Warningf("appid:%d uid:%d sync msgid:%d history message overflow:%d",
 			appId, receiver, syncMsgId, len(messages))
 	}
@@ -192,4 +211,184 @@ func (storage *PeerStorage) LoadHistoryMessages(appId int64, receiver int64, syn
 		hasMore = true
 	}
 	return messages, lastMsgId, hasMore
+}
+
+func (storage *PeerStorage) clonePeerIndex() map[UserId]*UserIndex {
+	messageIndex := make(map[UserId]*UserIndex)
+	for k, v := range storage.messageIndex {
+		messageIndex[k] = v
+	}
+	return messageIndex
+}
+
+func (storage *PeerStorage) savePeerIndex(messageIndex map[UserId]*UserIndex) {
+	path := fmt.Sprintf("%s/peer_index_t", storage.root)
+	log.Info("write peer message index path:", path)
+	begin := time.Now().UnixNano()
+	log.Info("flush peer index begin:", begin)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal("open file:", err)
+	}
+	defer file.Close()
+
+	buffer := new(bytes.Buffer)
+	index := 0
+	for id, value := range messageIndex {
+		binary.Write(buffer, binary.BigEndian, id.appId)
+		binary.Write(buffer, binary.BigEndian, id.uid)
+		binary.Write(buffer, binary.BigEndian, value.lastMsgId)
+		binary.Write(buffer, binary.BigEndian, value.lastId)
+		binary.Write(buffer, binary.BigEndian, value.lastPeerId)
+		binary.Write(buffer, binary.BigEndian, value.lastBatchId)
+		binary.Write(buffer, binary.BigEndian, value.lastSeqId)
+
+		index += 1
+
+		if index%1000 == 0 {
+			buf := buffer.Bytes()
+			n, err := file.Write(buf)
+			if err != nil {
+				log.Fatal("write file:", err)
+			}
+			if n != len(buf) {
+				log.Fatal("can't write file:", len(buf), n)
+			}
+			buffer.Reset()
+		}
+	}
+
+	buf := buffer.Bytes()
+	n, err := file.Write(buf)
+	if err != nil {
+		log.Fatal("write file:", err)
+	}
+	if n != len(buf) {
+		log.Fatal("can't write file:", len(buf), n)
+	}
+
+	err = file.Sync()
+	if err != nil {
+		log.Info("sync file err:", err)
+	}
+
+	path2 := fmt.Sprintf("%s/%s", storage.root, PEER_INDEX_FILE_NAME)
+	err = os.Rename(path, path2)
+	if err != nil {
+		log.Fatal("rename peer index file err:", err)
+	}
+
+	end := time.Now().UnixNano()
+	log.Info("flush peer index end:", end, " used:", end-begin)
+}
+
+func (storage *PeerStorage) repairPeerIndex() {
+	log.Info("repair message index begin:", storage.lastId, time.Now().UnixNano())
+	first := storage.getBlockNo(storage.lastId)
+	off := storage.getBlockOffset(storage.lastId)
+
+	for i := first; i <= storage.blockNo; i++ {
+		file := storage.openReadFile(i)
+		if file == nil {
+			//历史消息被删除
+			continue
+		}
+
+		offset := HEADER_SIZE
+		if i == first {
+			offset = off
+		}
+		_, err := file.Seek(int64(offset), io.SeekStart)
+		if err != nil {
+			log.Warning("seek file err:", err)
+			file.Close()
+			break
+		}
+		for {
+			msgId, err := file.Seek(0, io.SeekCurrent)
+			if err != nil {
+				log.Info("seek file err:", err)
+				break
+			}
+			msg := storage.ReadMessage(file)
+			if msg == nil {
+				break
+			}
+			blockNo := i
+			msgId = int64(blockNo)*BLOCK_SIZE + msgId
+			if msgId == storage.lastId {
+				continue
+			}
+			storage.execMessage(msg, msgId)
+		}
+		file.Close()
+	}
+	log.Info("repair message index end:", storage.lastId, time.Now().UnixNano())
+
+}
+
+func (storage *PeerStorage) execMessage(msg *Message, msgId int64) {
+	if msg.cmd == MSG_OFFLINE {
+		off := msg.body.(OfflineMessage)
+		lastPeerId := msgId
+
+		index := storage.getPeerIndex(off.appId, off.receiver)
+		if (msg.flag & MESSAGE_FLAG_GROUP) != 0 {
+			lastPeerId = index.lastPeerId
+		}
+		lastBatchId := index.lastBatchId
+		lastSeqId := index.lastSeqId + 1
+		if lastSeqId%BATCH_SIZE == 0 {
+			lastBatchId = msgId
+		}
+
+		ui := &UserIndex{off.msgId, msgId, lastPeerId, lastBatchId, lastSeqId}
+		storage.setPeerIndex(off.appId, off.receiver, ui)
+	}
+
+}
+
+func (storage *PeerStorage) readPeerIndex() bool {
+	path := fmt.Sprintf("%s/%s", storage.root, PEER_INDEX_FILE_NAME)
+	log.Info("read message index path:", path)
+	file, err := os.Open(path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Fatal("open file:", err)
+		}
+		return false
+	}
+	defer file.Close()
+	const INDEX_SIZE = 56
+	data := make([]byte, INDEX_SIZE*1000)
+
+	for {
+		n, err := file.Read(data)
+		if err != nil {
+			if err != io.EOF {
+				log.Fatal("read err:", err)
+			}
+			break
+		}
+		n = n - n%INDEX_SIZE
+		buffer := bytes.NewBuffer(data[:n])
+		for i := 0; i < n/INDEX_SIZE; i++ {
+			id := UserId{}
+			var lastMsgId int64
+			var lastId int64
+			var peerMsgId int64
+			var batchId int64
+			var seqId int64
+			binary.Read(buffer, binary.BigEndian, &id.appId)
+			binary.Read(buffer, binary.BigEndian, &id.uid)
+			binary.Read(buffer, binary.BigEndian, &lastMsgId)
+			binary.Read(buffer, binary.BigEndian, &lastId)
+			binary.Read(buffer, binary.BigEndian, &peerMsgId)
+			binary.Read(buffer, binary.BigEndian, &batchId)
+			binary.Read(buffer, binary.BigEndian, &seqId)
+			ui := &UserIndex{lastMsgId, lastId, peerMsgId, batchId, seqId}
+			storage.setPeerIndex(id.appId, id.uid, ui)
+		}
+	}
+	return true
 }

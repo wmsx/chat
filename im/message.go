@@ -51,6 +51,10 @@ var vmessageCreators map[int]VersionMessageCreator = make(map[int]VersionMessage
 func init() {
 	messageCreators[MSG_AUTH_TOKEN] = func() IMessage { return new(AuthenticationToken) }
 	messageCreators[MSG_AUTH_STATUS] = func() IMessage { return new(AuthenticationStatus) }
+	messageCreators[MSG_SYNC] = func() IMessage { return new(SyncKey) }
+	messageCreators[MSG_SYNC_BEGIN] = func() IMessage { return new(SyncKey) }
+	messageCreators[MSG_SYNC_END] = func() IMessage { return new(SyncKey) }
+	messageCreators[MSG_SYNC_NOTIFY] = func() IMessage { return new(SyncKey) }
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_ACK] = func() IVersionMessage { return new(MessageACK) }

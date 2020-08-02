@@ -7,11 +7,10 @@ import (
 
 const MSG_IM = 4
 
-
 const MSG_GROUP_IM = 8
+
 //群组消息 c -> s
 const MESSAGE_FLAG_GROUP = 0x04
-
 
 //个人消息队列
 const MSG_OFFLINE = 248
@@ -25,6 +24,8 @@ type VersionMessageCreator func() IVersionMessage
 var vmessage_creators map[int]VersionMessageCreator = make(map[int]VersionMessageCreator)
 
 func init() {
+	message_creators[MSG_OFFLINE] = func() IMessage {return new(OfflineMessage)}
+
 	vmessage_creators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 }
 
@@ -65,13 +66,13 @@ func (message *Message) FromData(buff []byte) bool {
 	if creator, ok := message_creators[cmd]; ok {
 		c := creator()
 		r := c.FromData(buff)
-		message.body = r
+		message.body = c
 		return r
 	}
 	if creator, ok := vmessage_creators[cmd]; ok {
 		c := creator()
 		r := c.FromData(message.version, buff)
-		message.body = r
+		message.body = c
 		return r
 	}
 	return len(buff) == 0
@@ -203,4 +204,3 @@ func (off *OfflineMessage) FromData(buff []byte) bool {
 	binary.Read(buffer, binary.BigEndian, &off.prevBatchMsgId)
 	return true
 }
-

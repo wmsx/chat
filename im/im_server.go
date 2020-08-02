@@ -18,7 +18,10 @@ var syncChan chan *SyncHistory
 var currentDeliverIndex uint64
 var groupMessageDelivers []*GroupMessageDeliver
 
-var  groupManager *GroupManager
+var groupManager *GroupManager
+
+//route server
+var routeChannels []*Channel
 
 func init() {
 	syncChan = make(chan *SyncHistory, 100)
@@ -54,7 +57,7 @@ func main() {
 	groupMessageDelivers = make([]*GroupMessageDeliver, config.groupDeliverCount)
 	for i := 0; i < config.groupDeliverCount; i++ {
 		q := fmt.Sprintf("q%d", i)
-		r :=  path.Join(config.pendingRoot, q)
+		r := path.Join(config.pendingRoot, q)
 		deliver := NewGroupMessageDeliver(r)
 		deliver.Start()
 		groupMessageDelivers[i] = deliver

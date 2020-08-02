@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sx-chat/lru"
 	"sync"
 )
 
@@ -17,6 +18,7 @@ const HEADER_SIZE = 32
 const MAGIC = 0x494d494d
 const F_VERSION = 1 << 16            //1.0
 const BLOCK_SIZE = 128 * 1024 * 1024 // 1个文件的大小 128M
+const LRU_SIZE = 128
 
 type StorageFile struct {
 	root  string
@@ -25,11 +27,17 @@ type StorageFile struct {
 	dirty   bool     //是否有新的写入
 	blockNo int      // 消息持久化文件的id
 	file    *os.File // 持久化文件，名称和blockNo有关
+	files   *lru.Cache
+
+	lastId      int64 //peer&group message_index记录的最大消息id
+	lastSavedId int64 //索引文件中最大的消息id
 }
 
 func NewStorageFile(root string) *StorageFile {
 	storage := new(StorageFile)
 	storage.root = root
+	storage.files = lru.New(LRU_SIZE)
+	storage.files.OnEvicted = onFileEvicted
 
 	pattern := fmt.Sprintf("%s/message_*", storage.root)
 	files, _ := filepath.Glob(pattern)
@@ -52,6 +60,11 @@ func NewStorageFile(root string) *StorageFile {
 
 	storage.openWriteFile(blockNo)
 	return storage
+}
+
+func onFileEvicted(key lru.Key, value interface{}) {
+	f := value.(*os.File)
+	f.Close()
 }
 
 func (storage *StorageFile) saveMessage(msg *Message) int64 {
@@ -145,6 +158,9 @@ func (storage *StorageFile) WriteHeader(file *os.File) {
 }
 
 func (storage *StorageFile) LoadMessage(msgId int64) *Message {
+	if msgId == 0 {
+		return nil
+	}
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
 
@@ -152,14 +168,14 @@ func (storage *StorageFile) LoadMessage(msgId int64) *Message {
 	offset := storage.getBlockOffset(msgId)
 
 	file := storage.getFile(blockNo)
-	if file != nil {
+	if file == nil {
 		log.Warning("can't get file object")
 		return nil
 	}
 
 	_, err := file.Seek(int64(offset), io.SeekStart)
 	if err != nil {
-		log.Warning("seek file")
+		log.Warning("seek file err: ", err)
 		return nil
 	}
 	return storage.ReadMessage(file)
@@ -174,10 +190,15 @@ func (storage *StorageFile) getBlockOffset(msgId int64) int {
 }
 
 func (storage *StorageFile) getFile(blockNo int) *os.File {
+	v, ok := storage.files.Get(blockNo)
+	if ok {
+		return v.(*os.File)
+	}
 	file := storage.openReadFile(blockNo)
-	if file != nil {
+	if file == nil {
 		return nil
 	}
+	storage.files.Add(blockNo, file)
 	return file
 }
 
@@ -232,5 +253,3 @@ func (storage *StorageFile) ReadMessage(file *os.File) *Message {
 	}
 	return msg
 }
-
-

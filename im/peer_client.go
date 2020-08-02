@@ -100,6 +100,9 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 		return
 	}
 
+	PushMessage(client.appId, msg.receiver, m)
+
+
 	meta := &Metadata{syncKey: msgId2, prevSyncKey: prevMsgId2}
 	ack := &Message{cmd: MSG_ACK, body: &MessageACK{seq: int32(seq)}, meta: meta}
 	r := client.EnqueueMessage(ack)

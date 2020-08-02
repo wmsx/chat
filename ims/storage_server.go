@@ -1,17 +1,29 @@
 package main
 
-import "github.com/valyala/gorpc"
+import (
+	"github.com/valyala/gorpc"
+	"time"
+)
 import log "github.com/sirupsen/logrus"
 
 var storage *Storage
 var config *StorageConfig
 
 func main() {
-
 	config = readStorageConf()
 	storage = NewStorage(config.storageRoot)
 
+	go FlushIndexLoop()
+
 	ListenRPCClient()
+}
+
+// 将MessageIndex持久化到磁盘
+func FlushIndexLoop()  {
+	ticker := time.NewTicker(time.Minute * 5)
+	for range ticker.C {
+		storage.FlushIndex()
+	}
 }
 
 func ListenRPCClient() {

@@ -1,15 +1,44 @@
-package test
+package main
 
 import (
 	"bytes"
 	"encoding/binary"
 )
 
+//离线消息由当前登录的用户在当前设备发出 c <- s
+const MESSAGE_FLAG_SELF = 0x08
+
+//消息由服务器主动推到客户端 c <- s
+const MESSAGE_FLAG_PUSH = 0x10
+
+//超级群消息 c <- s
+const MESSAGE_FLAG_SUPER_GROUP = 0x20
+
 const MSG_IM = 4
 const MSG_ACK = 5
 
+const MSG_GROUP_IM = 8
+
+const MSG_PING = 13
+const MSG_PONG = 14
+
 const MSG_AUTH_STATUS = 3
 const MSG_AUTH_TOKEN = 15
+
+//客户端->服务端
+const MSG_SYNC = 26 //同步消息
+//服务端->客服端
+const MSG_SYNC_BEGIN = 27
+const MSG_SYNC_END = 28
+
+//通知客户端有新消息
+const MSG_SYNC_NOTIFY = 29
+
+//客服端->服务端,更新服务器的synckey
+const MSG_SYNC_KEY = 34
+
+//消息的meta信息
+const MSG_METADATA = 37
 
 type MessageCreator func() IMessage
 
@@ -22,6 +51,11 @@ var vmessageCreators map[int]VersionMessageCreator = make(map[int]VersionMessage
 func init() {
 	messageCreators[MSG_AUTH_TOKEN] = func() IMessage { return new(AuthenticationToken) }
 	messageCreators[MSG_AUTH_STATUS] = func() IMessage { return new(AuthenticationStatus) }
+	messageCreators[MSG_METADATA] = func() IMessage { return new(Metadata) }
+	messageCreators[MSG_SYNC] = func() IMessage { return new(SyncKey) }
+	messageCreators[MSG_SYNC_BEGIN] = func() IMessage { return new(SyncKey) }
+	messageCreators[MSG_SYNC_END] = func() IMessage { return new(SyncKey) }
+	messageCreators[MSG_SYNC_NOTIFY] = func() IMessage { return new(SyncKey) }
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_ACK] = func() IVersionMessage { return new(MessageACK) }
@@ -79,6 +113,27 @@ func (message *Message) FromData(buff []byte) bool {
 type Metadata struct {
 	syncKey     int64
 	prevSyncKey int64
+}
+
+func (sync *Metadata) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, sync.syncKey)
+	binary.Write(buffer, binary.BigEndian, sync.prevSyncKey)
+	padding := [16]byte{}
+	buffer.Write(padding[:])
+	buf := buffer.Bytes()
+	return buf
+}
+
+func (sync *Metadata) FromData(buff []byte) bool {
+	if len(buff) < 32 {
+		return false
+	}
+
+	buffer := bytes.NewBuffer(buff)
+	binary.Read(buffer, binary.BigEndian, &sync.syncKey)
+	binary.Read(buffer, binary.BigEndian, &sync.prevSyncKey)
+	return true
 }
 
 // 消息转换的接口 相当于适配器
@@ -255,5 +310,26 @@ func (ack *MessageACK) FromData(version int, buff []byte) bool {
 	if version > 1 {
 		binary.Read(buffer, binary.BigEndian, &ack.status)
 	}
+	return true
+}
+
+type SyncKey struct {
+	syncKey int64
+}
+
+func (id *SyncKey) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, id.syncKey)
+	buf := buffer.Bytes()
+	return buf
+}
+
+func (id *SyncKey) FromData(buff []byte) bool {
+	if len(buff) < 8 {
+		return false
+	}
+
+	buffer := bytes.NewBuffer(buff)
+	binary.Read(buffer, binary.BigEndian, &id.syncKey)
 	return true
 }

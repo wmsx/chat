@@ -2,7 +2,7 @@ package main
 
 type PeerMessage struct {
 	AppID    int64
-	Uid      int64
+	UID      int64
 	DeviceID int64
 	Cmd      int32
 	Raw      []byte

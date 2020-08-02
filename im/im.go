@@ -11,7 +11,7 @@ func SaveMessage(appId, uid, deviceID int64, m *Message) (int64, int64, error) {
 
 	pm := &PeerMessage{
 		AppID:    appId,
-		Uid:      uid,
+		UID:      uid,
 		DeviceID: deviceID,
 		Cmd:      int32(m.cmd),
 		Raw:      m.ToData(),
@@ -56,6 +56,15 @@ func SavePeerGroupMessage(appId int64, members []int64, deviceID int64, m *Messa
 	return r, nil
 }
 
+func PushMessage(appId, receiver int64, m *Message)  {
+	channel := GetChannel(receiver)
+}
+
+func GetChannel(receiver int64) *Channel {
+	index := receiver%int64(len(routeChannels))
+	return routeChannel[index]
+}
+
 func GetStorageRPCClient(uid int64) *gorpc.DispatcherClient {
 	index := uid % int64(len(rpcClients))
 	return rpcClients[index]
@@ -68,6 +77,6 @@ func GetStorageRPCIndex(uid int64) int64 {
 
 func GetGroupMessageDeliver(groupId int64) *GroupMessageDeliver {
 	deliverIndex := atomic.AddUint64(&currentDeliverIndex, 1)
-	index := deliverIndex%uint64(len(groupMessageDelivers))
+	index := deliverIndex % uint64(len(groupMessageDelivers))
 	return groupMessageDelivers[index]
 }
