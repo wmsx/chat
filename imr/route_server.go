@@ -7,14 +7,16 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
+	"sync"
 	"time"
 )
 
 var config *RouteConfig
 var redisPool *redis.Pool
 var clients ClientSet
+var mutex sync.Mutex
 
-func init()  {
+func init() {
 	clients = NewClientSet()
 }
 
@@ -98,4 +100,33 @@ func IsUserOnline(appId, uid int64) bool {
 		}
 	}
 	return false
+}
+
+func FindClientSet(id *AppUserID) ClientSet {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	s := NewClientSet()
+
+	for c := range clients{
+		if c.ContainAppUserID(id) {
+			s.Add(c)
+		}
+	}
+	return s
+}
+
+func AddClient(client *Client) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	clients.Add(client)
+}
+
+
+func RemoveClient(client *Client) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	clients.Remove(client)
 }

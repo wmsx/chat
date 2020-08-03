@@ -19,5 +19,7 @@ type RouteConfig struct {
 func readConfig() *RouteConfig  {
 	config := new(RouteConfig)
 
+	config.listen = ":4444"
+
 	return config
 }

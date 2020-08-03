@@ -21,4 +21,12 @@ func (r *Route) IsUserOnline(uid int64) bool {
 	return r.uids[uid]
 }
 
+func (r *Route) ContainUserID(uid int64) bool {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	_, ok :=  r.uids[uid]
+	return ok
+}
+
 

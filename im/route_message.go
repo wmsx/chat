@@ -10,6 +10,7 @@ const MSG_PUBLISH = 132
 
 func init() {
 	messageCreators[MSG_PUSH] = func() IMessage { return new(BatchPushMessage) }
+	messageCreators[MSG_PUBLISH] = func() IMessage { return new(AppMessage) }
 }
 
 type BatchPushMessage struct {

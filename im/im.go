@@ -90,6 +90,7 @@ func PushMessage(appId, receiver int64, m *Message) {
 	channel.Push(appId, []int64{receiver}, m)
 }
 
+// 根据用户id到一台route server上，
 func GetChannel(receiver int64) *Channel {
 	index := receiver % int64(len(routeChannels))
 	return routeChannels[index]
@@ -109,4 +110,15 @@ func GetGroupMessageDeliver(groupId int64) *GroupMessageDeliver {
 	deliverIndex := atomic.AddUint64(&currentDeliverIndex, 1)
 	index := deliverIndex % uint64(len(groupMessageDelivers))
 	return groupMessageDelivers[index]
+}
+
+func DispatchAppMessage(amsg *AppMessage) {
+	if amsg.msgId > 0 {
+		if amsg.msg.flag & MESSAGE_FLAG_PUSH == 0 {
+			log.Fatal("invalid message flag", amsg.msg.flag)
+		}
+		meta := &Metadata{syncKey:amsg.msgId, prevSyncKey:amsg.prevMsgId}
+		amsg.msg.meta = meta
+	}
+	DispatchMessageToPeer(amsg.msg, amsg.receiver, amsg.appId, nil)
 }

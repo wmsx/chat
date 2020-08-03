@@ -20,16 +20,27 @@ type Client struct {
 	appRoute *AppRoute
 }
 
+func NewClient(conn *net.TCPConn) *Client {
+	client := new(Client)
+	client.conn = conn
+	client.wt = make(chan *Message, 10)
+	client.appRoute = NewAppRoute()
+	return client
+}
+
+
 func (client *Client) Run() {
+	go client.Write()
 	go client.Read()
 	go client.Push()
 }
 
 func (client *Client) Read() {
-
+	AddClient(client)
 	for {
 		msg := client.read()
-		if msg == nil {
+		if msg == nil { // im下线 msg就会为空，移除client
+			RemoveClient(client)
 			close(client.wt)
 			break
 		}
@@ -45,6 +56,8 @@ func (client *Client) HandleMessage(msg *Message) {
 	log.Info("msg cmd:", Command(msg.cmd))
 
 	switch msg.cmd {
+	case MSG_PUBLISH:
+		client.HandlePublish(msg.body.(*AppMessage))
 	case MSG_PUSH:
 		client.HandlePush(msg.body.(*BatchPushMessage))
 	default:
@@ -79,11 +92,49 @@ func (client *Client) IsAppUserOnline(id *AppUserID) bool {
 	return route.IsUserOnline(id.uid)
 }
 
+func (client *Client) HandlePublish(amsg *AppMessage) {
+	log.Infof("publish message appid:%d uid:%d msgid:%d cmd:%d", amsg.appId, amsg.receiver, amsg.msgId, Command(amsg.msg.cmd))
 
+	receiver := &AppUserID{appId:amsg.appId, uid:amsg.receiver}
+	s := FindClientSet(receiver)
 
-func NewClient(conn *net.TCPConn) *Client {
-	client := new(Client)
-	client.conn = conn
-	client.wt = make(chan *Message, 10)
-	return client
+	msg := &Message{cmd:MSG_PUBLISH, body:amsg}
+	for c := range s {
+		if client == c { // 如果从im过来的，消息已经从im发送出去了，这里是发送给其他im机器上的
+			continue
+		}
+		c.wt <- msg
+	}
 }
+
+func (client *Client) ContainAppUserID(id *AppUserID) bool {
+	route := client.appRoute.FindRoute(id.appId)
+	if route == nil {
+		return false
+	}
+	return route.ContainUserID(id.uid)
+}
+
+func (client *Client) Write() {
+	seq := 0
+	for {
+		msg := <- client.wt
+		if msg == nil {
+			client.close()
+			log.Infof("client socket closed")
+			break
+		}
+		seq++
+		msg.seq = seq
+		client.send(msg)
+	}
+}
+
+func (client *Client) close() {
+	client.conn.Close()
+}
+
+func (client *Client) send(msg *Message) {
+	SendMessage(client.conn, msg)
+}
+

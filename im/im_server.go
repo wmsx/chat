@@ -53,7 +53,7 @@ func main() {
 
 	routeChannels = make([]*Channel, 0)
 	for _, addr := range config.routeAddrs {
-		channel := NewChannel(addr)
+		channel := NewChannel(addr, DispatchAppMessage)
 		channel.Start()
 		routeChannels = append(routeChannels, channel)
 	}

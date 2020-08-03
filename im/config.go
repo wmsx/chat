@@ -40,7 +40,7 @@ type Config struct {
 	logCaller   bool
 }
 
-func readConfig() *Config{
+func readConfig() *Config {
 	config := new(Config)
 	config.port = 23000
 
@@ -50,6 +50,8 @@ func readConfig() *Config{
 	config.mysqlDatasource = "root:mingchaonaxieshi@tcp(127.0.0.1:3306)/gobelieve"
 
 	config.storageRpcAddrs = []string{"127.0.0.1:13333"}
+
+	config.routeAddrs = []string{"127.0.0.1:4444"}
 
 	config.groupDeliverCount = 4
 	config.pendingRoot = "/Users/zengqiang96/im/pending"
