@@ -6,11 +6,16 @@ import (
 )
 
 const MSG_PUSH = 134
+const MSG_UNSUBSCRIBE = 131
 const MSG_PUBLISH = 132
+const MSG_SUBSCRIBE = 130
+
 
 func init() {
 	messageCreators[MSG_PUSH] = func() IMessage { return new(BatchPushMessage) }
 	messageCreators[MSG_PUBLISH] = func() IMessage { return new(AppMessage) }
+	messageCreators[MSG_UNSUBSCRIBE] = func()IMessage{return new(AppUserID)}
+	messageCreators[MSG_SUBSCRIBE] = func() IMessage { return new(SubscribeMessage) }
 }
 
 type BatchPushMessage struct {
@@ -148,5 +153,30 @@ func (amsg *AppMessage) FromData(buff []byte) bool {
 	}
 	amsg.msg = msg
 
+	return true
+}
+
+type SubscribeMessage struct {
+	appId  int64
+	uid    int64
+	online int8
+}
+
+func (sub *SubscribeMessage) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, sub.appId)
+	binary.Write(buffer, binary.BigEndian, sub.uid)
+	binary.Write(buffer, binary.BigEndian, sub.online)
+	return buffer.Bytes()
+}
+
+func (sub *SubscribeMessage) FromData(buff []byte) bool {
+	if len(buff) < 17 {
+		return false
+	}
+	buffer := bytes.NewBuffer(buff)
+	binary.Read(buffer, binary.BigEndian, &sub.appId)
+	binary.Read(buffer, binary.BigEndian, &sub.uid)
+	binary.Read(buffer, binary.BigEndian, &sub.online)
 	return true
 }

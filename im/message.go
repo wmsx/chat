@@ -332,3 +332,27 @@ func (id *SyncKey) FromData(buff []byte) bool {
 	binary.Read(buffer, binary.BigEndian, &id.syncKey)
 	return true
 }
+
+
+type AppUserID struct {
+	appId int64
+	uid   int64
+}
+
+func (id *AppUserID) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, id.appId)
+	binary.Write(buffer, binary.BigEndian, id.uid)
+	return buffer.Bytes()
+}
+
+func (id *AppUserID) FromData(buff []byte) bool {
+	if len(buff) < 16 {
+		return false
+	}
+	buffer := bytes.NewBuffer(buff)
+	binary.Read(buffer, binary.BigEndian, &id.appId)
+	binary.Read(buffer, binary.BigEndian, &id.uid)
+	return true
+}
+

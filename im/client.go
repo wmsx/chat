@@ -124,6 +124,8 @@ func (client *Client) HandleClientClosed() {
 
 	client.RemoveClient()
 	close(client.wt)
+
+	client.PeerClient.Logout()
 }
 
 func (client *Client) HandleMessage(msg *Message) {
@@ -150,7 +152,7 @@ func (client *Client) HandlePing() {
 
 func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 	var err error
-	appId, uid, _, _, err := client.AuthToken(login.token)
+	appId, uid, _, on, err := client.AuthToken(login.token)
 
 	// 鉴权没通过
 	if err != nil {
@@ -167,11 +169,19 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 			return
 		}
 	}
+
+	isMobile := login.platformId == PLATFORM_IOS || login.platformId == PLATFORM_ANDROID
+	online := true
+	if on && !isMobile {
+		online = false
+	}
+
 	client.appId = appId
 	client.uid = uid
 	client.deviceId = login.deviceId
 	client.platformId = login.platformId
 	client.version = version
+	client.online = online
 
 	msg := &Message{cmd: MSG_AUTH_STATUS, version: version, body: &AuthenticationStatus{0}}
 	client.EnqueueMessage(msg)

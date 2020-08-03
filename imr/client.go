@@ -28,7 +28,6 @@ func NewClient(conn *net.TCPConn) *Client {
 	return client
 }
 
-
 func (client *Client) Run() {
 	go client.Write()
 	go client.Read()
@@ -56,6 +55,10 @@ func (client *Client) HandleMessage(msg *Message) {
 	log.Info("msg cmd:", Command(msg.cmd))
 
 	switch msg.cmd {
+	case MSG_SUBSCRIBE:
+		client.HandleSubscribe(msg.body.(*SubscribeMessage))
+	case MSG_UNSUBSCRIBE:
+		client.HandleUnsubscribe(msg.body.(*AppUserID))
 	case MSG_PUBLISH:
 		client.HandlePublish(msg.body.(*AppMessage))
 	case MSG_PUSH:
@@ -95,10 +98,10 @@ func (client *Client) IsAppUserOnline(id *AppUserID) bool {
 func (client *Client) HandlePublish(amsg *AppMessage) {
 	log.Infof("publish message appid:%d uid:%d msgid:%d cmd:%d", amsg.appId, amsg.receiver, amsg.msgId, Command(amsg.msg.cmd))
 
-	receiver := &AppUserID{appId:amsg.appId, uid:amsg.receiver}
+	receiver := &AppUserID{appId: amsg.appId, uid: amsg.receiver}
 	s := FindClientSet(receiver)
 
-	msg := &Message{cmd:MSG_PUBLISH, body:amsg}
+	msg := &Message{cmd: MSG_PUBLISH, body: amsg}
 	for c := range s {
 		if client == c { // 如果从im过来的，消息已经从im发送出去了，这里是发送给其他im机器上的
 			continue
@@ -118,7 +121,7 @@ func (client *Client) ContainAppUserID(id *AppUserID) bool {
 func (client *Client) Write() {
 	seq := 0
 	for {
-		msg := <- client.wt
+		msg := <-client.wt
 		if msg == nil {
 			client.close()
 			log.Infof("client socket closed")
@@ -138,3 +141,16 @@ func (client *Client) send(msg *Message) {
 	SendMessage(client.conn, msg)
 }
 
+func (client *Client) HandleSubscribe(id *SubscribeMessage) {
+	log.Infof("subscribe appid:%d uid:%d online:%d", id.appId, id.uid, id.online)
+	route := client.appRoute.FindOrAddRoute(id.appId)
+	on := id.online != 0
+	route.AddUserID(id.uid, on)
+}
+
+func (client *Client) HandleUnsubscribe(id *AppUserID) {
+	log.Infof("unsubscribe appid:%d uid:%d", id.appId, id.uid)
+
+	route :=  client.appRoute.FindOrAddRoute(id.appId)
+	route.RemoveUserID(id.uid)
+}

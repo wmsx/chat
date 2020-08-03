@@ -7,7 +7,9 @@ type PeerClient struct {
 }
 
 func (client *PeerClient) Login() {
+	channel := GetChannel(client.uid)
 
+	channel.Subscribe(client.appId, client.uid, client.online)
 }
 
 func (client *PeerClient) HandleMessage(msg *Message) {
@@ -117,4 +119,11 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 		log.Warning("send peer message ack error")
 	}
 	log.Infof("peer message sender:%d receiver:%d msgId:%d\n", msg.sender, msg.receiver, msgId)
+}
+
+func (client *PeerClient) Logout() {
+	if client.uid > 0 {
+		channel := GetChannel(client.uid)
+		channel.Unsubscribe(client.appId, client.uid, client.online)
+	}
 }

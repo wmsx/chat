@@ -41,3 +41,15 @@ func (r *AppRoute) AddRoute(route *Route) {
 	defer r.mutex.Unlock()
 	r.apps[route.appId] = route
 }
+
+func (r *AppRoute) FindOrAddRoute(appId int64) *Route {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if route, ok := r.apps[appId]; ok {
+		return route
+	}
+	route := NewRoute(appId)
+	r.apps[appId] = route
+	return route
+}

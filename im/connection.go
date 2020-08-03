@@ -13,6 +13,8 @@ const CLIENT_TIMEOUT = 6 * 60
 type Connection struct {
 	conn interface{}
 
+	online bool
+
 	wt chan *Message
 
 	// 离线消息
