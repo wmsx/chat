@@ -31,6 +31,7 @@ func NewChannel(addr string, f func(*AppMessage)) *Channel {
 	channel := new(Channel)
 	channel.addr = addr
 	channel.dispatch = f
+	channel.subscribers = make(map[int64]*Subscriber)
 
 	channel.wt = make(chan *Message, 10)
 	return channel

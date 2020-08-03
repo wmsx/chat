@@ -329,7 +329,7 @@ func (storage *PeerStorage) repairPeerIndex() {
 
 func (storage *PeerStorage) execMessage(msg *Message, msgId int64) {
 	if msg.cmd == MSG_OFFLINE {
-		off := msg.body.(OfflineMessage)
+		off := msg.body.(*OfflineMessage)
 		lastPeerId := msgId
 
 		index := storage.getPeerIndex(off.appId, off.receiver)

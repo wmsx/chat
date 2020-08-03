@@ -44,8 +44,6 @@ func NewRedisPool(server, password string, db int) *redis.Pool {
 	}
 }
 
-
-
 func send(sender, receiver int64) {
 	token, err := login(sender)
 	if err != nil {
@@ -88,7 +86,6 @@ func send(sender, receiver int64) {
 	conn.Close()
 	log.Printf("%d send complete", sender)
 }
-
 
 func sync(uid int64) {
 	syncKey := int64(0)
@@ -141,8 +138,6 @@ func sync(uid int64) {
 	conn.Close()
 }
 
-
-
 func receive(receiver int64) {
 	syncKey := int64(0)
 
@@ -162,7 +157,7 @@ func receive(receiver int64) {
 	for {
 		msg := ReceiveMessage(conn)
 		if msg == nil {
-			log.Println("sync nil message")
+			log.Println("receiver nil message")
 			break
 		}
 		if msg.cmd == MSG_SYNC_BEGIN {
@@ -177,8 +172,6 @@ func receive(receiver int64) {
 			if m.syncKey > syncKey {
 				syncKey = m.syncKey
 				seq++
-				//sk := &Message{cmd:MSG_SYNC_KEY, seq:seq, version:DEFAULT_VERSION, flag:0, body:&SyncKey{syncKey}}
-				//SendMessage(conn, sk)
 			}
 		}
 		if msg.cmd == MSG_IM {
@@ -188,4 +181,3 @@ func receive(receiver int64) {
 	}
 	conn.Close()
 }
-
