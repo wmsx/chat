@@ -51,7 +51,7 @@ func ListenClient(port int) {
 			log.Errorf("accept err:%s", err)
 			return
 		}
-		log.Infoln("handle new connection, remote address:", conn.RemoteAddr())
+		log.WithField("客户端地址",  conn.RemoteAddr()).Info("接收到新连接",)
 		handlerClient(conn)
 	}
 }

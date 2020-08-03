@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/gorpc"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"path"
 	"time"
 )
@@ -31,6 +32,8 @@ func init() {
 
 func main() {
 	config = readConfig()
+
+	initLog()
 
 	redisPool = NewRedisPool(config.redisAddress, config.redisPassword, config.redisDB)
 
@@ -73,8 +76,10 @@ func main() {
 	}
 	go SyncKeyService()
 
+	log.WithField("测试", "xx").Info("测试....")
+
 	ListenClient(config.port)
-	log.Infof("exit")
+	log.Info("exit")
 }
 
 func NewRedisPool(server, password string, db int) *redis.Pool {
@@ -111,9 +116,25 @@ func SyncKeyService() {
 		case s := <-syncChan:
 			origin := GetSyncKey(s.AppID, s.UID)
 			if s.LastMsgID > origin {
-				log.Infof("save sync key:%d %d %d", s.AppID, s.UID, s.LastMsgID)
+				log.WithFields(log.Fields{"appId": s.AppID, "uid": s.UID, "lastMsgId": s.LastMsgID}).Infof("save sync key")
 				SaveSyncKey(s.AppID, s.UID, s.LastMsgID)
 			}
 		}
 	}
+}
+
+func initLog() {
+	if config.logFilename != "" {
+		writer := &lumberjack.Logger{
+			Filename:   config.logFilename,
+			MaxSize:    1024,
+			MaxAge:     config.logAge,
+			MaxBackups: config.logBackup,
+			Compress:   false,
+		}
+		log.SetOutput(writer)
+		log.SetFormatter(&log.TextFormatter{DisableColors:true})
+		log.StandardLogger().SetNoLock()
+	}
+	log.SetReportCaller(config.logCaller)
 }
