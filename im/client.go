@@ -56,6 +56,7 @@ func ListenClient(port int) {
 	}
 }
 
+// conn 可能是tcp 也可能是websocket连接
 func handlerClient(conn interface{}) {
 	client := NewClient(conn)
 	client.Run()

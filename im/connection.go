@@ -36,7 +36,7 @@ func (client *Connection) read() *Message {
 		return ReceiveClientMessage(conn)
 	} else if conn, ok := client.conn.(*websocket.Conn); ok {
 		conn.SetReadDeadline(time.Now().Add(CLIENT_TIMEOUT * time.Second))
-		//return ReadWebsocketMessage(conn)
+		return ReadWebsocketMessage(conn)
 	}
 	return nil
 }

@@ -283,7 +283,7 @@ func (storage *PeerStorage) savePeerIndex(messageIndex map[UserId]*UserIndex) {
 }
 
 func (storage *PeerStorage) repairPeerIndex() {
-	log.Info("repair message index begin:", storage.lastId, time.Now().UnixNano())
+	log.Info("修复message index开始:", storage.lastId, time.Now().UnixNano())
 	first := storage.getBlockNo(storage.lastId)
 	off := storage.getBlockOffset(storage.lastId)
 
@@ -323,7 +323,7 @@ func (storage *PeerStorage) repairPeerIndex() {
 		}
 		file.Close()
 	}
-	log.Info("repair message index end:", storage.lastId, time.Now().UnixNano())
+	log.Info("修复message index结束:", storage.lastId, time.Now().UnixNano())
 
 }
 
