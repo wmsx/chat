@@ -56,13 +56,43 @@ func SavePeerGroupMessage(appId int64, members []int64, deviceID int64, m *Messa
 	return r, nil
 }
 
-func PushMessage(appId, receiver int64, m *Message)  {
+func PublishMessage(appId, uid int64, msg *Message) {
+	amsg := &AppMessage{appId: appId, receiver: uid, msg: msg}
+	if msg.meta != nil {
+		amsg.msgId = msg.meta.syncKey
+		amsg.prevMsgId = msg.meta.prevSyncKey
+	}
+	channel := GetChannel(uid)
+	channel.Publish(amsg)
+}
+
+func DispatchMessageToPeer(msg *Message, uid, appId int64, client *Client) bool {
+	route := appRoute.FindRoute(appId)
+	if route == nil {
+		log.Warningf("can't dispatch app message, appid:%d uid:%d cmd:%s", appId, uid, Command(msg.cmd))
+		return false
+	}
+	clients := route.FindClientSet(uid)
+	if len(clients) == 0 {
+		return false
+	}
+	for c, _ := range clients {
+		if c == client { // 有可能是自己发给自己的其他登录点，此时可能c==client
+			continue
+		}
+		c.EnqueueMessage(msg)
+	}
+	return true
+}
+
+func PushMessage(appId, receiver int64, m *Message) {
 	channel := GetChannel(receiver)
+	channel.Push(appId, []int64{receiver}, m)
 }
 
 func GetChannel(receiver int64) *Channel {
-	index := receiver%int64(len(routeChannels))
-	return routeChannel[index]
+	index := receiver % int64(len(routeChannels))
+	return routeChannels[index]
 }
 
 func GetStorageRPCClient(uid int64) *gorpc.DispatcherClient {

@@ -5,6 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net"
 	"time"
+	"unsafe"
 )
 
 const CLIENT_TIMEOUT = 6 * 60
@@ -56,6 +57,19 @@ func (client *Connection) EnqueueMessages(msgs []*Message) bool {
 		log.Infof("send messages to pwt timed out:%d", client.uid)
 		return false
 	}
+}
+
+func (client *Connection) SendMessage(uid int64, msg *Message) {
+	appId := client.appId
+	PublishMessage(appId, uid, msg)
+	DispatchMessageToPeer(msg, uid, appId, client.Client())
+}
+
+
+
+func (client *Connection) Client() *Client {
+	p := unsafe.Pointer(client)
+	return (*Client)(p)
 }
 
 func (client *Connection) close() {

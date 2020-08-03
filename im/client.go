@@ -121,6 +121,8 @@ func (client *Client) send(m *Message) {
 }
 
 func (client *Client) HandleClientClosed() {
+
+	client.RemoveClient()
 	close(client.wt)
 }
 
@@ -174,6 +176,8 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 	msg := &Message{cmd: MSG_AUTH_STATUS, version: version, body: &AuthenticationStatus{0}}
 	client.EnqueueMessage(msg)
 
+	client.AddClient()
+
 	client.PeerClient.Login()
 }
 
@@ -193,4 +197,19 @@ func (client *Client) AuthToken(token string) (int64, int64, int, bool, error) {
 
 func GetUserPreferences(appId int64, uid int64) (int, bool, error) {
 	return 0, false, nil
+}
+
+func (client *Client) AddClient() {
+	route := appRoute.FindOrAddRoute(client.appId)
+	route.AddClient(client)
+}
+
+func (client *Client) RemoveClient() {
+	route := appRoute.FindRoute(client.appId)
+	if route == nil {
+		log.Warning("can't find app route")
+		return
+	}
+
+	route.RemoveClient(client)
 }

@@ -87,7 +87,7 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 	seq := message.seq
 
 	m := &Message{cmd: MSG_IM, version: DEFAULT_VERSION, body: msg}
-	msgId, _, err := SaveMessage(client.appId, msg.receiver, client.deviceID, m)
+	msgId, prevMsgId, err := SaveMessage(client.appId, msg.receiver, client.deviceID, m)
 	if err != nil {
 		log.Errorf("保存peer消息: %d %d 失败 err: ", msg.sender, msg.receiver, err)
 		return
@@ -100,10 +100,17 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 		return
 	}
 
-	PushMessage(client.appId, msg.receiver, m)
+	//PushMessage(client.appId, msg.receiver, m)
 
+	// 推送给接受方
+	meta := &Metadata{syncKey: msgId, prevSyncKey: prevMsgId}
+	m1 := &Message{cmd: MSG_IM, version:DEFAULT_VERSION, flag:message.flag|MESSAGE_FLAG_PUSH, body:msg, meta:meta}
+	client.SendMessage(msg.receiver, m1)
+	notify := &Message{cmd:MSG_SYNC_NOTIFY, body:&SyncKey{syncKey:msgId}}
+	client.SendMessage(msg.receiver, notify)
 
-	meta := &Metadata{syncKey: msgId2, prevSyncKey: prevMsgId2}
+	// 给发送发发送ack
+	meta = &Metadata{syncKey: msgId2, prevSyncKey: prevMsgId2}
 	ack := &Message{cmd: MSG_ACK, body: &MessageACK{seq: int32(seq)}, meta: meta}
 	r := client.EnqueueMessage(ack)
 	if !r {

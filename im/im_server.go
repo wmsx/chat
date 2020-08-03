@@ -22,8 +22,10 @@ var groupManager *GroupManager
 
 //route server
 var routeChannels []*Channel
+var appRoute *AppRoute
 
 func init() {
+	appRoute = NewAppRoute()
 	syncChan = make(chan *SyncHistory, 100)
 }
 
@@ -47,6 +49,13 @@ func main() {
 			dc := dispatcher.NewFuncClient(c)
 			rpcClients = append(rpcClients, dc)
 		}
+	}
+
+	routeChannels = make([]*Channel, 0)
+	for _, addr := range config.routeAddrs {
+		channel := NewChannel(addr)
+		channel.Start()
+		routeChannels = append(routeChannels, channel)
 	}
 
 	if len(config.mysqlDatasource) > 0 {
