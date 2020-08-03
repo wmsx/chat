@@ -15,8 +15,6 @@ func init() {
 	messageCreators[MSG_PUBLISH] = func() IMessage { return new(AppMessage) }
 	messageCreators[MSG_SUBSCRIBE] = func() IMessage { return new(SubscribeMessage) }
 	messageCreators[MSG_UNSUBSCRIBE] = func()IMessage{return new(AppUserID)}
-
-
 }
 
 type BatchPushMessage struct {

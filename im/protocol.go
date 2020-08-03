@@ -32,7 +32,7 @@ func ReceiveLimitMessage(conn io.Reader, limitSize int, external bool) (*Message
 	}
 	length, seq, cmd, version, flag := ReadHeader(buff)
 
-	if length < 0 || length > limitSize {
+	if length <= 0 || length > limitSize {
 		log.Info("invalid len:", length)
 		return nil, errors.New("invalid length")
 	}

@@ -88,7 +88,6 @@ func (channel *Channel) RunOnce(conn *net.TCPConn) {
 			if err != nil {
 				log.Info("channel send message err: ", err)
 			}
-			log.Info("send to route server: ", conn.RemoteAddr())
 		}
 	}
 }

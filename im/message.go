@@ -57,6 +57,7 @@ func init() {
 	messageCreators[MSG_SYNC_NOTIFY] = func() IMessage { return new(SyncKey) }
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
+	vmessageCreators[MSG_GROUP_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_ACK] = func() IVersionMessage { return new(MessageACK) }
 }
 

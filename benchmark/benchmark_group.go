@@ -10,5 +10,5 @@ func main()  {
 	runtime.GOMAXPROCS(4)
 	seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	redisPool = NewRedisPool(redisAddress, redisPassword, redisDB)
-	send(1, 100)
+	sendGroup(1, 100)
 }

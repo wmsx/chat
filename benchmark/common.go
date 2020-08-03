@@ -44,6 +44,52 @@ func NewRedisPool(server, password string, db int) *redis.Pool {
 	}
 }
 
+
+
+func sendGroup(sender, groupId int64) {
+	token, err := login(sender)
+	if err != nil {
+		log.Println("login error err: ", err)
+		return
+	}
+
+	addr := net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 23000,}
+	conn, err := net.DialTCP("tcp", nil, &addr)
+	if err != nil {
+		log.Println("connect error")
+		return
+	}
+
+	seq := 1
+
+	auth := &AuthenticationToken{token: token, platformId: 1, deviceId: "0000000"}
+	SendMessage(conn, &Message{cmd: MSG_AUTH_TOKEN, seq: seq, version: DEFAULT_VERSION, body: auth})
+	m := ReceiveMessage(conn)
+	fmt.Println(m)
+	fmt.Println(m.body)
+
+	ticker := time.NewTicker(1 * time.Second)
+
+	for t := range ticker.C {
+		content := fmt.Sprintf("test....%d", t.Unix())
+		seq++
+		msg := &Message{cmd: MSG_GROUP_IM, seq: seq, version: DEFAULT_VERSION, flag: 0, body: &IMMessage{sender, groupId, 0, 0, content}}
+		SendMessage(conn, msg)
+		for {
+			ack := ReceiveMessage(conn)
+			fmt.Println(ack)
+			fmt.Println(ack.body)
+			if ack.cmd == MSG_ACK {
+				break
+			}
+		}
+	}
+
+	conn.Close()
+	log.Printf("%d send complete", sender)
+}
+
+
 func send(sender, receiver int64) {
 	token, err := login(sender)
 	if err != nil {
@@ -174,7 +220,7 @@ func receive(receiver int64) {
 				seq++
 			}
 		}
-		if msg.cmd == MSG_IM {
+		if msg.cmd == MSG_IM || msg.cmd == MSG_GROUP_IM {
 			m := msg.body.(*IMMessage)
 			log.Printf("sender:%d receiver:%d content:%s", m.sender, m.receiver, m.content)
 		}

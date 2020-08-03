@@ -57,6 +57,11 @@ func NewGroupMessageDeliver(root string) *GroupMessageDeliver {
 
 	storage.openWriteFile()
 
+	storage.wt = make(chan int64, 10)
+	storage.lt = make(chan *GroupLoader)
+	storage.callbacks = make(map[int64]chan *Metadata)
+	storage.callbackId2msgId = make(map[int64]int64)
+
 	return storage
 }
 
@@ -265,14 +270,73 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 	for _, member := range gm.members {
 		groupMembers[member] = 0
 	}
+	// 离线推送，不需要
 	//group := NewGroup(gm.gid, gm.appId, groupMembers)
 	//PushGroupMessage(gm.appId, group, m)
 	return metadata, true
 }
 
+// 推送给群中的成员
+//device_ID 发送者的设备ID
 func (storage *GroupMessageDeliver) sendMessage(appId, uid, sender, deviceID int64, msg *Message) bool {
 
+	// publish只是发送给群成员不在当前im机器上连接
+	PublishMessage(appId, uid, msg)
+
+	// 这里是处理连接在当前im机器上的群成员消息推送
+	route := appRoute.FindRoute(appId)
+	if route == nil {
+		log.Warnf("不能发送消息，appId:%d uid:%d cmd:%d", appId, uid, msg.cmd)
+		return false
+	}
+
+	clients := route.FindClientSet(uid)
+	if len(clients) == 0 {
+		return false
+	}
+
+	for c, _ := range clients {
+		// 不发送给自己
+		if c.deviceID == deviceID && sender == uid {
+			continue
+		}
+		c.EnqueueMessage(msg)
+	}
 	return true
+}
+
+//save without lock
+func (storage *GroupMessageDeliver) saveMessage(msg *Message) int64 {
+	msgId, err := storage.file.Seek(0, io.SeekEnd)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, int32(MAGIC))
+
+	body := msg.ToData()
+	var msgLen = MSG_HEADER_SIZE + int32(len(body))
+	binary.Write(buffer, binary.BigEndian, msgLen)
+
+	WriteHeader(int32(len(body)), int32(msg.seq), byte(msg.cmd),
+		byte(msg.version), byte(msg.flag), buffer)
+	buffer.Write(body)
+
+	binary.Write(buffer, binary.BigEndian, msgLen)
+	binary.Write(buffer, binary.BigEndian, int32(MAGIC))
+	buf := buffer.Bytes()
+
+	n, err := storage.file.Write(buf)
+	if err != nil {
+		log.Fatal("file write err:", err)
+	}
+	if n != len(buf) {
+		log.Fatal("file write size:", len(buf), " nwrite:", n)
+	}
+
+	log.Info("save message:", Command(msg.cmd), " ", msgId)
+	return msgId
 }
 
 func (storage *GroupMessageDeliver) ReadMessage(file *os.File) *Message {
@@ -360,40 +424,6 @@ func (storage *GroupMessageDeliver) SaveMessage(msg *Message, ch chan *Metadata)
 	default:
 	}
 	return callbackId
-}
-
-//save without lock
-func (storage *GroupMessageDeliver) saveMessage(msg *Message) int64 {
-	msgId, err := storage.file.Seek(0, os.SEEK_END)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	buffer := new(bytes.Buffer)
-	binary.Write(buffer, binary.BigEndian, int32(MAGIC))
-
-	body := msg.ToData()
-	var msgLen = MSG_HEADER_SIZE + int32(len(body))
-	binary.Write(buffer, binary.BigEndian, msgLen)
-
-	WriteHeader(int32(len(body)), int32(msg.seq), byte(msg.cmd),
-		byte(msg.version), byte(msg.flag), buffer)
-	buffer.Write(body)
-
-	binary.Write(buffer, binary.BigEndian, msgLen)
-	binary.Write(buffer, binary.BigEndian, int32(MAGIC))
-	buf := buffer.Bytes()
-
-	n, err := storage.file.Write(buf)
-	if err != nil {
-		log.Fatal("file write err:", err)
-	}
-	if n != len(buf) {
-		log.Fatal("file write size:", len(buf), " nwrite:", n)
-	}
-
-	log.Info("save message:", Command(msg.cmd), " ", msgId)
-	return msgId
 }
 
 func (storage *GroupMessageDeliver) AddCallback(msgId int64, ch chan *Metadata) int64 {

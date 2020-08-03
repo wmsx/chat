@@ -53,7 +53,7 @@ func readConfig() *Config {
 
 	config.routeAddrs = []string{"127.0.0.1:4444"}
 
-	config.groupDeliverCount = 4
+	config.groupDeliverCount = 1
 	config.pendingRoot = "/Users/zengqiang96/im/pending"
 
 	return config

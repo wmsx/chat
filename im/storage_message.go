@@ -8,6 +8,10 @@ import (
 //im实例使用
 const MSG_PENDING_GROUP_MESSAGE = 251
 
+func init() {
+	messageCreators[MSG_PENDING_GROUP_MESSAGE] = func() IMessage { return new(PendingGroupMessage) }
+}
+
 //待发送的群组消息临时存储结构
 type PendingGroupMessage struct {
 	appId     int64

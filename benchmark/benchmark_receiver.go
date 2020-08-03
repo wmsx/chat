@@ -12,5 +12,5 @@ func main() {
 	seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	redisPool = NewRedisPool(redisAddress, redisPassword, redisDB)
 
-	receive(100)
+	receive(101)
 }

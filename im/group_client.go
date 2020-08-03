@@ -60,7 +60,7 @@ func (client *GroupClient) HandleGroupIMMessage(message *Message) {
 }
 
 func (client *GroupClient) HandleGroupMessage(im *IMMessage, group *Group) (int64, int64, error) {
-	gm := PendingGroupMessage{}
+	gm := &PendingGroupMessage{}
 	gm.appId = client.appId
 	gm.sender = im.sender
 	gm.deviceID = client.deviceID

@@ -59,6 +59,8 @@ func init() {
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_ACK] = func() IVersionMessage { return new(MessageACK) }
+	vmessageCreators[MSG_GROUP_IM] = func() IVersionMessage { return new(IMMessage) }
+
 }
 
 type Command int
