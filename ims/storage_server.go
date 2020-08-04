@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/valyala/gorpc"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"time"
 )
 import log "github.com/sirupsen/logrus"
@@ -11,7 +12,10 @@ var config *StorageConfig
 
 func main() {
 	config = readStorageConf()
+	initLog()
+
 	storage = NewStorage(config.storageRoot)
+
 
 	go FlushIndexLoop()
 
@@ -41,4 +45,20 @@ func ListenRPCClient() {
 	if err := s.Serve(); err != nil {
 		log.Fatalf("Cannot start rpc server: %s", err)
 	}
+}
+
+func initLog() {
+	if config.logFilename != "" {
+		writer := &lumberjack.Logger{
+			Filename:   config.logFilename,
+			MaxSize:    1024,
+			MaxAge:     config.logAge,
+			MaxBackups: config.logBackup,
+			Compress:   false,
+		}
+		log.SetOutput(writer)
+		log.SetFormatter(&log.TextFormatter{DisableColors:true})
+		log.StandardLogger().SetNoLock()
+	}
+	log.SetReportCaller(config.logCaller)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"math/rand"
 	"net"
 	"runtime"
@@ -25,6 +26,8 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	config = readConfig()
+	initLog()
+
 	redisPool = NewRedisPool(config.redisAddr, config.redisPassword, config.redisDB)
 
 	ListenClient()
@@ -129,4 +132,20 @@ func RemoveClient(client *Client) {
 	defer mutex.Unlock()
 
 	clients.Remove(client)
+}
+
+func initLog() {
+	if config.logFilename != "" {
+		writer := &lumberjack.Logger{
+			Filename:   config.logFilename,
+			MaxSize:    1024,
+			MaxAge:     config.logAge,
+			MaxBackups: config.logBackup,
+			Compress:   false,
+		}
+		log.SetOutput(writer)
+		log.SetFormatter(&log.TextFormatter{DisableColors:true})
+		log.StandardLogger().SetNoLock()
+	}
+	log.SetReportCaller(config.logCaller)
 }

@@ -46,7 +46,7 @@ func (client *Connection) EnqueueMessage(msg *Message) bool {
 	case client.wt <- msg:
 		return true
 	case <-time.After(60 * time.Second):
-		log.Infof("send message to wt timed out:%d", client.uid)
+		log.WithField("uid", client.uid).Info("消息发送到 wt 超时")
 		return false
 	}
 }
@@ -56,7 +56,7 @@ func (client *Connection) EnqueueMessages(msgs []*Message) bool {
 	case client.pwt <- msgs:
 		return true
 	case <-time.After(60 * time.Second):
-		log.Infof("send messages to pwt timed out:%d", client.uid)
+		log.WithField("uid", client.uid).Infof("消息发送到 pwt 超时")
 		return false
 	}
 }
@@ -66,8 +66,6 @@ func (client *Connection) SendMessage(uid int64, msg *Message) {
 	PublishMessage(appId, uid, msg)
 	DispatchMessageToPeer(msg, uid, appId, client.Client())
 }
-
-
 
 func (client *Connection) Client() *Client {
 	p := unsafe.Pointer(client)

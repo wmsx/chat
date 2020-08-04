@@ -94,7 +94,7 @@ func SendMessage(conn io.Writer, msg *Message) error {
 		return err
 	}
 	if n != len(buf) {
-		log.Infof("write less:%d %d", n, len(buf))
+		log.WithFields(log.Fields{"写入":n, "总数": len(buf)}).Info("write less")
 		return errors.New("write less")
 	}
 	return nil

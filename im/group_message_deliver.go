@@ -49,10 +49,10 @@ func NewGroupMessageDeliver(root string) *GroupMessageDeliver {
 	if _, err := os.Stat(root); os.IsNotExist(err) {
 		err = os.Mkdir(root, 0755)
 		if err != nil {
-			log.Fatal("mkdir err:", err)
+			log.WithField("err", err).Fatal("GroupMessageDeliver mkdir 失败")
 		}
 	} else if err != nil {
-		log.Fatal("stat err:", err)
+		log.WithField("err", err).Fatal("GroupMessageDeliver stat 失败")
 	}
 
 	storage.openWriteFile()
@@ -70,17 +70,17 @@ func (storage *GroupMessageDeliver) openWriteFile() {
 	log.Info("open/create message file path:", path)
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
-		log.Fatal("open file:", err)
+		log.WithField("err", err).Fatal("open file:", err)
 	}
 	fileSize, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
-		log.Fatal("seek file")
+		log.WithField("err", err).Fatal("seek file")
 	}
 	if fileSize < HEADER_SIZE && fileSize > 0 {
-		log.Info("file header is't complete")
+		log.Info("GroupMessageDeliver 文件头部不完整")
 		err := file.Truncate(0)
 		if err != nil {
-			log.Fatal("truncate file")
+			log.WithField("err", err).Fatal("truncate file")
 		}
 		fileSize = 0
 	}
@@ -144,8 +144,7 @@ func (storage *GroupMessageDeliver) loadGroup(groupLoader *GroupLoader) {
 
 func (storage *GroupMessageDeliver) flushPendingMessage() {
 	latestMsgId := atomic.LoadInt64(&storage.latestMsgId)
-	log.Infof("flush pending message latest msgid:%d latest sended msgid:%d",
-		latestMsgId, storage.latestSentMsgId)
+	log.WithFields(log.Fields{"latestMsgId": latestMsgId, "latestSentMsgId": storage.latestSentMsgId}).Info("刷入pending message到磁盘")
 
 	if latestMsgId > storage.latestSentMsgId {
 		storage.sendPendingMessage()
@@ -166,7 +165,7 @@ func (storage *GroupMessageDeliver) flushPendingMessage() {
 func (storage *GroupMessageDeliver) truncateFile() {
 	err := storage.file.Truncate(HEADER_SIZE)
 	if err != nil {
-		log.Fatal("truncate err:", err)
+		log.WithField("err", err).Fatal("truncate err:", err)
 	}
 
 	storage.latestMsgId = 0
@@ -187,14 +186,14 @@ func (storage *GroupMessageDeliver) sendPendingMessage() {
 	}
 	_, err := file.Seek(offset, io.SeekStart)
 	if err != nil {
-		log.Error("seek file err:", err)
+		log.WithField("err", err).Error("seek file失败")
 		return
 	}
 
 	for {
 		msgId, err := file.Seek(0, io.SeekCurrent)
 		if err != nil {
-			log.Error("seek file err:", err)
+			log.WithField("err", err).Error("seek file失败")
 			break
 		}
 
@@ -242,11 +241,11 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 	for _, mb := range batchMembers {
 		r, err := SavePeerGroupMessage(gm.appId, mb, gm.deviceID, m)
 		if err != nil {
-			log.Errorf("save peer group message:%d %d err:%s", gm.sender, gm.gid, err)
+			log.WithFields(log.Fields{"sender": gm.sender, "gid": gm.gid, "err": err}).Error("保存peer group message失败")
 			return nil, false
 		}
 		if len(r) != len(mb)*2 {
-			log.Errorf("save peer group message err:%d %d", len(r), len(mb))
+			log.WithFields(log.Fields{"len(r)": len(r), "len(mb)": len(mb)}).Error("保存peer group message失败")
 			return nil, false
 		}
 		for i := 0; i < len(r); i += 2 {
@@ -286,7 +285,7 @@ func (storage *GroupMessageDeliver) sendMessage(appId, uid, sender, deviceID int
 	// 这里是处理连接在当前im机器上的群成员消息推送
 	route := appRoute.FindRoute(appId)
 	if route == nil {
-		log.Warnf("不能发送消息，appId:%d uid:%d cmd:%d", appId, uid, msg.cmd)
+		log.WithFields(log.Fields{"appId": appId, "uid": uid, "cmd": msg.cmd}).Warn("不能发送消息")
 		return false
 	}
 
@@ -329,7 +328,7 @@ func (storage *GroupMessageDeliver) saveMessage(msg *Message) int64 {
 
 	n, err := storage.file.Write(buf)
 	if err != nil {
-		log.Fatal("file write err:", err)
+		log.WithField("err", err).Fatal("file write失败")
 	}
 	if n != len(buf) {
 		log.Fatal("file write size:", len(buf), " nwrite:", n)

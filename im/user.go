@@ -54,7 +54,7 @@ func GetSyncKey(appId, uid int64) int64 {
 
 	origin, err := redis.Int64(conn.Do("HGET", key, "sync_key"))
 	if err != nil && err != redis.ErrNil {
-		log.Info("hget error:", err)
+		log.WithField("err", err).Info("hget失败")
 		return 0
 	}
 	return origin
@@ -68,6 +68,6 @@ func SaveSyncKey(appId, uid int64, syncKey int64) {
 
 	_, err := conn.Do("HSET", key, "sync_key", syncKey)
 	if err != nil {
-		log.Warning("hset error:", err)
+		log.WithField("err", err).Warning("hset失败")
 	}
 }

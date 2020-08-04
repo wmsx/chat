@@ -88,7 +88,7 @@ func (client *GroupClient) HandleGroupMessage(im *IMMessage, group *Group) (int6
 	case meta := <-c:
 		return meta.syncKey, meta.prevSyncKey, nil
 	case <-time.After(2 * time.Second):
-		log.Errorf("save group message:%d %d timeout", im.sender, im.receiver)
+		log.WithFields(log.Fields{"sender": im.sender, "receiver": im.receiver}).Error("save group message超时")
 		return 0, 0, errors.New("timeout")
 	}
 }

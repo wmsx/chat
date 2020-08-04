@@ -56,7 +56,7 @@ func readConfig() *Config {
 	config.groupDeliverCount = 1
 	config.pendingRoot = "/Users/zengqiang96/im/pending"
 
-	config.logFilename = "chat_im.log"
+	config.logFilename = "/Users/zengqiang96/logs/im.log"
 	config.logAge = 30
 	config.logBackup = 10
 	config.logCaller = false

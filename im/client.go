@@ -36,7 +36,7 @@ func ListenClient(port int) {
 	listenAddr := fmt.Sprintf("0.0.0.0:%d", port)
 	listen, err := net.Listen("tcp", listenAddr)
 	if err != nil {
-		log.Errorf("监听端口失败:%s", err)
+		log.WithField("err", err).Error("监听端口失败")
 		return
 	}
 	tcpListener, ok := listen.(*net.TCPListener)
@@ -48,10 +48,10 @@ func ListenClient(port int) {
 	for {
 		conn, err := tcpListener.AcceptTCP()
 		if err != nil {
-			log.Errorf("accept err:%s", err)
+			log.WithField("err", err).Error("accept err")
 			return
 		}
-		log.WithField("客户端地址",  conn.RemoteAddr()).Info("接收到新连接",)
+		log.WithField("客户端地址", conn.RemoteAddr()).Info("接收到新连接", )
 		handlerClient(conn)
 	}
 }
@@ -157,7 +157,7 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 
 	// 鉴权没通过
 	if err != nil {
-		log.Infof("auth token:%s err:%s", login.token, err)
+		log.WithFields(log.Fields{"token": login.token, "err": err}).Info("验证token失败")
 		msg := &Message{cmd: MSG_AUTH_STATUS, version: version, body: &AuthenticationStatus{status: 1}}
 		client.EnqueueMessage(msg)
 	}

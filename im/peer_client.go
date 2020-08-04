@@ -25,7 +25,12 @@ func (client *PeerClient) HandleMessage(msg *Message) {
 
 func (client *PeerClient) HandleSyncKey(syncKey *SyncKey) {
 	lastId := syncKey.syncKey
-	log.Infof("sync key:%d %d %d %d", client.appId, client.uid, client.deviceID, lastId)
+	log.WithFields(log.Fields{
+		"appId":    client.appId,
+		"uid":      client.uid,
+		"deviceID": client.deviceID,
+		"lastId":   lastId,
+	}).Info("HandleSyncKey")
 
 	if lastId > 0 {
 		s := &SyncHistory{
@@ -49,11 +54,16 @@ func (client *PeerClient) HandleSync(syncKey *SyncKey) {
 		LastMsgID: lastId,
 	}
 
-	log.Infof("syncing message:%d %d %d %d", client.appId, client.uid, client.deviceID, lastId)
+	log.WithFields(log.Fields{
+		"appId":    client.appId,
+		"uid":      client.uid,
+		"deviceID": client.deviceID,
+		"lastId":   lastId,
+	}).Info("syncing message")
 
 	resp, err := rpc.Call("SyncMessage", s)
 	if err != nil {
-		log.Warning("sync message err:", err)
+		log.WithField("err", err).Warning("sync message")
 		return
 	}
 
@@ -91,14 +101,14 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 	m := &Message{cmd: MSG_IM, version: DEFAULT_VERSION, body: msg}
 	msgId, prevMsgId, err := SaveMessage(client.appId, msg.receiver, client.deviceID, m)
 	if err != nil {
-		log.Errorf("保存peer消息: %d %d 失败 err: ", msg.sender, msg.receiver, err)
+		log.WithFields(log.Fields{"sender": msg.sender, "receiver": msg.receiver, "err": err}).Error("保存peer消息失败")
 		return
 	}
 
 	// 保存到自己的消息队列，用户的其他登录点也能接受到自己发出的消息
 	msgId2, prevMsgId2, err := SaveMessage(client.appId, msg.sender, client.deviceID, m)
 	if err != nil {
-		log.Errorf("save peer message:%d %d err:", msg.sender, msg.receiver, err)
+		log.WithFields(log.Fields{"sender": msg.sender, "receiver": msg.receiver, "err": err}).Error("保存peer消息失败")
 		return
 	}
 
@@ -106,9 +116,9 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 
 	// 推送给接受方
 	meta := &Metadata{syncKey: msgId, prevSyncKey: prevMsgId}
-	m1 := &Message{cmd: MSG_IM, version:DEFAULT_VERSION, flag:message.flag|MESSAGE_FLAG_PUSH, body:msg, meta:meta}
+	m1 := &Message{cmd: MSG_IM, version: DEFAULT_VERSION, flag: message.flag | MESSAGE_FLAG_PUSH, body: msg, meta: meta}
 	client.SendMessage(msg.receiver, m1)
-	notify := &Message{cmd:MSG_SYNC_NOTIFY, body:&SyncKey{syncKey:msgId}}
+	notify := &Message{cmd: MSG_SYNC_NOTIFY, body: &SyncKey{syncKey: msgId}}
 	client.SendMessage(msg.receiver, notify)
 
 	// 给发送发发送ack
@@ -116,9 +126,9 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 	ack := &Message{cmd: MSG_ACK, body: &MessageACK{seq: int32(seq)}, meta: meta}
 	r := client.EnqueueMessage(ack)
 	if !r {
-		log.Warning("send peer message ack error")
+		log.Warning("发送peer message ack失败")
 	}
-	log.Infof("peer message sender:%d receiver:%d msgId:%d\n", msg.sender, msg.receiver, msgId)
+	log.WithFields(log.Fields{"sender": msg.sender, "receiver": msg.receiver, "msgId": msgId}).Infof("保存peer消息成功")
 }
 
 func (client *PeerClient) Logout() {

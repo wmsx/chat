@@ -19,7 +19,7 @@ func SaveMessage(appId, uid, deviceID int64, m *Message) (int64, int64, error) {
 
 	resp, err := dc.Call("SavePeerMessage", pm)
 	if err != nil {
-		log.Error("save peer message err:", err)
+		log.WithField("err", err).Error("save peer message err:")
 		return 0, 0, err
 	}
 
@@ -114,10 +114,10 @@ func GetGroupMessageDeliver(groupId int64) *GroupMessageDeliver {
 
 func DispatchAppMessage(amsg *AppMessage) {
 	if amsg.msgId > 0 {
-		if amsg.msg.flag & MESSAGE_FLAG_PUSH == 0 {
+		if amsg.msg.flag&MESSAGE_FLAG_PUSH == 0 {
 			log.Fatal("invalid message flag", amsg.msg.flag)
 		}
-		meta := &Metadata{syncKey:amsg.msgId, prevSyncKey:amsg.prevMsgId}
+		meta := &Metadata{syncKey: amsg.msgId, prevSyncKey: amsg.prevMsgId}
 		amsg.msg.meta = meta
 	}
 	DispatchMessageToPeer(amsg.msg, amsg.receiver, amsg.appId, nil)
