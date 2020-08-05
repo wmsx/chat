@@ -111,7 +111,7 @@ func FindClientSet(id *AppUserID) ClientSet {
 
 	s := NewClientSet()
 
-	for c := range clients{
+	for c := range clients {
 		if c.ContainAppUserID(id) {
 			s.Add(c)
 		}
@@ -126,12 +126,23 @@ func AddClient(client *Client) {
 	clients.Add(client)
 }
 
-
 func RemoveClient(client *Client) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	clients.Remove(client)
+}
+
+func GetClientSet() ClientSet {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	s := NewClientSet()
+
+	for c := range clients {
+		s.Add(c)
+	}
+	return s
 }
 
 func initLog() {
@@ -144,7 +155,7 @@ func initLog() {
 			Compress:   false,
 		}
 		log.SetOutput(writer)
-		log.SetFormatter(&log.TextFormatter{DisableColors:true})
+		log.SetFormatter(&log.TextFormatter{DisableColors: true})
 		log.StandardLogger().SetNoLock()
 	}
 	log.SetReportCaller(config.logCaller)

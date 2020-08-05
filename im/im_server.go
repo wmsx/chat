@@ -12,7 +12,10 @@ import "github.com/gomodule/redigo/redis"
 
 var config *Config
 var redisPool *redis.Pool
+
 var rpcClients []*gorpc.DispatcherClient
+var groupRpcClients []*gorpc.DispatcherClient
+
 var syncChan chan *SyncHistory
 
 //round-robin
@@ -23,6 +26,7 @@ var groupManager *GroupManager
 
 //route server
 var routeChannels []*Channel
+var groupRouteChannels []*Channel
 var appRoute *AppRoute
 
 func init() {
@@ -54,11 +58,37 @@ func main() {
 		}
 	}
 
+	if len(config.groupStorageRpcAddrs) > 0 {
+		groupRpcClients = make([]*gorpc.DispatcherClient, 0)
+		for _, addr := range config.groupStorageRpcAddrs {
+			c := &gorpc.Client{
+				Addr:  addr,
+				Conns: 4,
+			}
+			c.Start()
+
+			dispatcher := gorpc.NewDispatcher()
+			dispatcher.AddFunc("SaveGroupMessage", SaveGroupMessageInterface)
+
+			dc := dispatcher.NewFuncClient(c)
+			groupRpcClients = append(groupRpcClients, dc)
+		}
+	}
+
 	routeChannels = make([]*Channel, 0)
 	for _, addr := range config.routeAddrs {
-		channel := NewChannel(addr, DispatchAppMessage)
+		channel := NewChannel(addr, DispatchAppMessage, DispatchGroupMessage)
 		channel.Start()
 		routeChannels = append(routeChannels, channel)
+	}
+
+	if len(config.groupRouteAddrs) > 0 {
+		groupRouteChannels = make([]*Channel, 0)
+		for _, addr := range config.groupRouteAddrs {
+			channel := NewChannel(addr, DispatchAppMessage, DispatchGroupMessage)
+			channel.Start()
+			groupRouteChannels = append(groupRouteChannels, channel)
+		}
 	}
 
 	if len(config.mysqlDatasource) > 0 {
@@ -133,7 +163,7 @@ func initLog() {
 			Compress:   false,
 		}
 		log.SetOutput(writer)
-		log.SetFormatter(&log.TextFormatter{DisableColors:true})
+		log.SetFormatter(&log.TextFormatter{DisableColors: true})
 		log.StandardLogger().SetNoLock()
 	}
 	log.SetReportCaller(config.logCaller)

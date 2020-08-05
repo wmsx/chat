@@ -61,6 +61,8 @@ func (client *Client) HandleMessage(msg *Message) {
 		client.HandleUnsubscribe(msg.body.(*AppUserID))
 	case MSG_PUBLISH:
 		client.HandlePublish(msg.body.(*AppMessage))
+	case MSG_PUBLISH_GROUP:
+		client.HandlePublishGroup(msg.body.(AppMessage))
 	case MSG_PUSH:
 		client.HandlePush(msg.body.(*BatchPushMessage))
 	default:
@@ -151,6 +153,21 @@ func (client *Client) HandleSubscribe(id *SubscribeMessage) {
 func (client *Client) HandleUnsubscribe(id *AppUserID) {
 	log.Infof("unsubscribe appid:%d uid:%d", id.appId, id.uid)
 
-	route :=  client.appRoute.FindOrAddRoute(id.appId)
+	route := client.appRoute.FindOrAddRoute(id.appId)
 	route.RemoveUserID(id.uid)
+}
+
+func (client *Client) HandlePublishGroup(amsg AppMessage) {
+	log.WithFields(log.Fields{"appId": amsg.appId, "msgId": amsg.msgId, "receiver": amsg.receiver, "cmd": amsg.msg.cmd}).Info("分发群组消息")
+	// 群发给所有接入服务器
+	s := GetClientSet()
+
+	msg := &Message{cmd: MSG_PUBLISH_GROUP, body: amsg}
+	for c := range s {
+		//不发送给自身
+		if client == c {
+			continue
+		}
+		c.wt <- msg
+	}
 }

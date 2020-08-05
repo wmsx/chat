@@ -25,13 +25,16 @@ type Channel struct {
 	subscribers map[int64]*Subscriber // key 为appId
 
 	dispatch func(*AppMessage)
+	dispatchGroup func(*AppMessage)
 }
 
-func NewChannel(addr string, f func(*AppMessage)) *Channel {
+func NewChannel(addr string, f func(*AppMessage), f2 func(*AppMessage)) *Channel {
 	channel := new(Channel)
 	channel.addr = addr
-	channel.dispatch = f
 	channel.subscribers = make(map[int64]*Subscriber)
+	channel.dispatch = f
+	channel.dispatchGroup = f2
+
 
 	channel.wt = make(chan *Message, 10)
 	return channel
@@ -72,6 +75,11 @@ func (channel *Channel) RunOnce(conn *net.TCPConn) {
 				amsg := msg.body.(*AppMessage)
 				if channel.dispatch != nil {
 					channel.dispatch(amsg)
+				}
+			} else if msg.cmd == MSG_PUBLISH_GROUP {
+				amsg := msg.body.(*AppMessage)
+				if channel.dispatchGroup != nil {
+					channel.dispatchGroup(amsg)
 				}
 			}
 		}
@@ -196,4 +204,9 @@ func (channel *Channel) RemoveSubscribe(appId int64, uid int64, online bool) (in
 		}
 	}
 	return count & 0xffff, count >> 16 & 0xffff
+}
+
+func (channel *Channel) PublishGroup(amsg *AppMessage) {
+	msg := &Message{cmd: MSG_PUBLISH_GROUP, body: amsg}
+	channel.wt <- msg
 }

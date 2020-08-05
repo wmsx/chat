@@ -10,12 +10,16 @@ const MSG_UNSUBSCRIBE = 131
 const MSG_PUBLISH = 132
 const MSG_SUBSCRIBE = 130
 
+const MSG_PUBLISH_GROUP  = 135
+
 
 func init() {
 	messageCreators[MSG_PUSH] = func() IMessage { return new(BatchPushMessage) }
-	messageCreators[MSG_PUBLISH] = func() IMessage { return new(AppMessage) }
 	messageCreators[MSG_UNSUBSCRIBE] = func()IMessage{return new(AppUserID)}
 	messageCreators[MSG_SUBSCRIBE] = func() IMessage { return new(SubscribeMessage) }
+
+	messageCreators[MSG_PUBLISH] = func() IMessage { return new(AppMessage) }
+	messageCreators[MSG_PUBLISH_GROUP] = func() IMessage {return new(AppMessage)}
 }
 
 type BatchPushMessage struct {

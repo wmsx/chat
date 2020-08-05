@@ -36,6 +36,14 @@ type PeerGroupMessage struct {
 	Raw      []byte
 }
 
+type GroupMessage struct {
+	AppId    int64
+	GroupId  int64
+	DeviceID int64
+	Cmd      int32
+	Raw      []byte
+}
+
 func SavePeerMessageInterface(addr string, m *PeerMessage) ([2]int64, error) {
 	return [2]int64{}, nil
 }
@@ -46,4 +54,8 @@ func SyncMessageInterface(addr string, syncKey *SyncHistory) *PeerHistoryMessage
 
 func SavePeerGroupMessageInterface(addr string, m *PeerGroupMessage) ([]int64, error) {
 	return nil, nil
+}
+
+func SaveGroupMessageInterface(addr string, m *GroupMessage) ([2]int64, error) {
+	return [2]int64{}, nil
 }

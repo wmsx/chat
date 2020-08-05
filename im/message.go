@@ -34,8 +34,18 @@ const MSG_SYNC_END = 28
 //通知客户端有新消息
 const MSG_SYNC_NOTIFY = 29
 
+//客户端->服务端
+const MSG_SYNC_GROUP = 30 //同步超级群消息
+//服务端->客服端
+const MSG_SYNC_GROUP_BEGIN = 31
+const MSG_SYNC_GROUP_END = 32
+
+//通知客户端有新消息
+const MSG_SYNC_GROUP_NOTIFY = 33
+
 //客服端->服务端,更新服务器的synckey
 const MSG_SYNC_KEY = 34
+const MSG_GROUP_SYNC_KEY = 35
 
 //消息的meta信息
 const MSG_METADATA = 37
@@ -51,10 +61,16 @@ var vmessageCreators map[int]VersionMessageCreator = make(map[int]VersionMessage
 func init() {
 	messageCreators[MSG_AUTH_TOKEN] = func() IMessage { return new(AuthenticationToken) }
 	messageCreators[MSG_AUTH_STATUS] = func() IMessage { return new(AuthenticationStatus) }
+
 	messageCreators[MSG_SYNC] = func() IMessage { return new(SyncKey) }
 	messageCreators[MSG_SYNC_BEGIN] = func() IMessage { return new(SyncKey) }
 	messageCreators[MSG_SYNC_END] = func() IMessage { return new(SyncKey) }
 	messageCreators[MSG_SYNC_NOTIFY] = func() IMessage { return new(SyncKey) }
+
+	messageCreators[MSG_SYNC_GROUP] = func() IMessage { return new(GroupSyncKey) }
+	messageCreators[MSG_SYNC_GROUP_BEGIN] = func() IMessage { return new(GroupSyncKey) }
+	messageCreators[MSG_SYNC_GROUP_END] = func() IMessage { return new(GroupSyncKey) }
+	messageCreators[MSG_GROUP_SYNC_KEY] = func() IMessage { return new(GroupSyncKey) }
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_GROUP_IM] = func() IVersionMessage { return new(IMMessage) }
@@ -334,7 +350,6 @@ func (id *SyncKey) FromData(buff []byte) bool {
 	return true
 }
 
-
 type AppUserID struct {
 	appId int64
 	uid   int64
@@ -357,3 +372,24 @@ func (id *AppUserID) FromData(buff []byte) bool {
 	return true
 }
 
+type GroupSyncKey struct {
+	groupId int64
+	syncKey int64
+}
+
+func (id *GroupSyncKey) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, id.groupId)
+	binary.Write(buffer, binary.BigEndian, id.syncKey)
+	return buffer.Bytes()
+}
+
+func (id *GroupSyncKey) FromData(buff []byte) bool {
+	if len(buff) < 16 {
+		return false
+	}
+	buffer := bytes.NewBuffer(buff)
+	binary.Write(buffer, binary.BigEndian, &id.groupId)
+	binary.Write(buffer, binary.BigEndian, &id.syncKey)
+	return true
+}

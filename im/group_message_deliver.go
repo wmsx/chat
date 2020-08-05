@@ -452,3 +452,12 @@ func (storage *GroupMessageDeliver) DoCallback(msgId int64, meta *Metadata) {
 		ch <- meta
 	}
 }
+
+func (storage *GroupMessageDeliver) DispatchMessage(msg *AppMessage) {
+	group := groupManager.LoadGroup(msg.receiver)
+	if group == nil {
+		log.Warning("加载Group为空，不能分发Group消息")
+		return
+	}
+	DispatchMessageToGroup(msg.msg, group, msg.appId, nil)
+}

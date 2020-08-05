@@ -67,6 +67,13 @@ func (client *Connection) SendMessage(uid int64, msg *Message) {
 	DispatchMessageToPeer(msg, uid, appId, client.Client())
 }
 
+func (client *GroupClient) sendGroupMessage(group *Group, msg *Message) {
+	appId := client.appId
+	PublishGroupMessage(appId, group.gid, msg)
+	DispatchMessageToGroup(msg, group, appId, client.Client())
+}
+
+
 func (client *Connection) Client() *Client {
 	p := unsafe.Pointer(client)
 	return (*Client)(p)
