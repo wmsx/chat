@@ -75,11 +75,15 @@ func main() {
 		}
 	}
 
-	routeChannels = make([]*Channel, 0)
-	for _, addr := range config.routeAddrs {
-		channel := NewChannel(addr, DispatchAppMessage, DispatchGroupMessage)
-		channel.Start()
-		routeChannels = append(routeChannels, channel)
+	if len(config.routeAddrs) > 0 {
+		routeChannels = make([]*Channel, 0)
+		for _, addr := range config.routeAddrs {
+			channel := NewChannel(addr, DispatchAppMessage, DispatchGroupMessage)
+			channel.Start()
+			routeChannels = append(routeChannels, channel)
+		}
+	} else {
+		log.Fatal("route服务器配置为空")
 	}
 
 	if len(config.groupRouteAddrs) > 0 {
@@ -89,6 +93,8 @@ func main() {
 			channel.Start()
 			groupRouteChannels = append(groupRouteChannels, channel)
 		}
+	} else {
+		log.Fatal("群组route服务器配置为空")
 	}
 
 	if len(config.mysqlDatasource) > 0 {

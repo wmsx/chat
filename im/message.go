@@ -71,6 +71,7 @@ func init() {
 	messageCreators[MSG_SYNC_GROUP_BEGIN] = func() IMessage { return new(GroupSyncKey) }
 	messageCreators[MSG_SYNC_GROUP_END] = func() IMessage { return new(GroupSyncKey) }
 	messageCreators[MSG_GROUP_SYNC_KEY] = func() IMessage { return new(GroupSyncKey) }
+	messageCreators[MSG_SYNC_GROUP_NOTIFY] = func() IMessage { return new(GroupSyncKey) }
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_GROUP_IM] = func() IVersionMessage { return new(IMMessage) }

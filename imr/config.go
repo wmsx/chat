@@ -22,7 +22,7 @@ func readConfig() *RouteConfig  {
 	config.listen = ":4444"
 
 
-	config.logFilename = "/Users/zengqiang96/logs/imr.log"
+	//config.logFilename = "/Users/zengqiang96/logs/imr.log"
 	config.logAge = 30
 	config.logBackup = 10
 	config.logCaller = false

@@ -122,7 +122,7 @@ func (channel *Channel) Subscribe(appId, uid int64, online bool) {
 		if online {
 			on = 1
 		}
-		id := SubscribeMessage{appId: appId, uid: uid, online: int8(on)}
+		id := &SubscribeMessage{appId: appId, uid: uid, online: int8(on)}
 		msg := &Message{cmd: MSG_SUBSCRIBE, body: id}
 		channel.wt <- msg
 	} else if onlineCount == 0 && online {

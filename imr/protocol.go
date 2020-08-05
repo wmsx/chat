@@ -50,8 +50,7 @@ func ReceiveLimitMessage(conn io.Reader, limitSize int, external bool) (*Message
 	message.version = version
 	message.flag = flag
 	if !message.FromData(buff) {
-		log.Warningf("parse error:%d, %d %d %d %s", cmd, seq, version,
-			flag, hex.EncodeToString(buff))
+		log.WithFields(log.Fields{"cmd":cmd, "seq": seq, "version": version,"flag": flag, "buff": hex.EncodeToString(buff)}).Warning("反序列化消息失败")
 		return nil, errors.New("parse error")
 	}
 	return message, nil

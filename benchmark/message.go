@@ -34,8 +34,12 @@ const MSG_SYNC_END = 28
 //通知客户端有新消息
 const MSG_SYNC_NOTIFY = 29
 
+//通知客户端有新消息
+const MSG_SYNC_GROUP_NOTIFY = 33
+
 //客服端->服务端,更新服务器的synckey
 const MSG_SYNC_KEY = 34
+const MSG_GROUP_SYNC_KEY = 35
 
 //消息的meta信息
 const MSG_METADATA = 37
@@ -56,6 +60,10 @@ func init() {
 	messageCreators[MSG_SYNC_BEGIN] = func() IMessage { return new(SyncKey) }
 	messageCreators[MSG_SYNC_END] = func() IMessage { return new(SyncKey) }
 	messageCreators[MSG_SYNC_NOTIFY] = func() IMessage { return new(SyncKey) }
+
+
+	messageCreators[MSG_GROUP_SYNC_KEY] = func() IMessage { return new(GroupSyncKey) }
+	messageCreators[MSG_SYNC_GROUP_NOTIFY] = func() IMessage { return new(GroupSyncKey) }
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_ACK] = func() IVersionMessage { return new(MessageACK) }
@@ -335,3 +343,27 @@ func (id *SyncKey) FromData(buff []byte) bool {
 	binary.Read(buffer, binary.BigEndian, &id.syncKey)
 	return true
 }
+
+
+type GroupSyncKey struct {
+	groupId int64
+	syncKey int64
+}
+
+func (id *GroupSyncKey) ToData() []byte {
+	buffer := new(bytes.Buffer)
+	binary.Write(buffer, binary.BigEndian, id.groupId)
+	binary.Write(buffer, binary.BigEndian, id.syncKey)
+	return buffer.Bytes()
+}
+
+func (id *GroupSyncKey) FromData(buff []byte) bool {
+	if len(buff) < 16 {
+		return false
+	}
+	buffer := bytes.NewBuffer(buff)
+	binary.Write(buffer, binary.BigEndian, &id.groupId)
+	binary.Write(buffer, binary.BigEndian, &id.syncKey)
+	return true
+}
+

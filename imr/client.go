@@ -62,7 +62,7 @@ func (client *Client) HandleMessage(msg *Message) {
 	case MSG_PUBLISH:
 		client.HandlePublish(msg.body.(*AppMessage))
 	case MSG_PUBLISH_GROUP:
-		client.HandlePublishGroup(msg.body.(AppMessage))
+		client.HandlePublishGroup(msg.body.(*AppMessage))
 	case MSG_PUSH:
 		client.HandlePush(msg.body.(*BatchPushMessage))
 	default:
@@ -157,7 +157,7 @@ func (client *Client) HandleUnsubscribe(id *AppUserID) {
 	route.RemoveUserID(id.uid)
 }
 
-func (client *Client) HandlePublishGroup(amsg AppMessage) {
+func (client *Client) HandlePublishGroup(amsg *AppMessage) {
 	log.WithFields(log.Fields{"appId": amsg.appId, "msgId": amsg.msgId, "receiver": amsg.receiver, "cmd": amsg.msg.cmd}).Info("分发群组消息")
 	// 群发给所有接入服务器
 	s := GetClientSet()

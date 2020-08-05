@@ -57,7 +57,7 @@ func (client *GroupClient) HandleGroupIMMessage(message *Message) {
 	}
 	log.WithFields(log.Fields{"sender": msg.sender, "receiver": msg.receiver, "是否超级群": group.super}).Info("发送群组消息成功")
 	if meta != nil {
-		log.WithFields(log.Fields{"syncKey": meta.syncKey, "prevSyncKey": meta.prevSyncKey}).Info("发送群组消息ack meta数据", meta.syncKey, meta.prevSyncKey)
+		log.WithFields(log.Fields{"syncKey": meta.syncKey, "prevSyncKey": meta.prevSyncKey}).Info("发送群组消息ack meta数据")
 	}
 }
 

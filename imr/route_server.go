@@ -63,7 +63,7 @@ func handleClient(conn *net.TCPConn) {
 	conn.SetKeepAlive(true)
 	conn.SetKeepAlivePeriod(10 * time.Minute)
 	client := NewClient(conn)
-	log.Info("new client:", conn.RemoteAddr())
+	log.WithField("客户端地址", conn.RemoteAddr()).Info("新客户端连接:")
 	client.Run()
 }
 

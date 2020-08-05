@@ -68,7 +68,7 @@ func sendGroup(sender, groupId int64) {
 	fmt.Println(m)
 	fmt.Println(m.body)
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 
 	for t := range ticker.C {
 		content := fmt.Sprintf("test....%d", t.Unix())
