@@ -32,3 +32,11 @@ func SavePeerGroupMessage(addr string, m *PeerGroupMessage) ([]int64, error) {
 	r := storage.SavePeerGroupMessage(m.AppId, m.Members, m.DeviceID, msg)
 	return r, nil
 }
+
+func SaveGroupMessage(addr string, m *GroupMessage) ([2]int64, error) {
+	msg := &Message{cmd: int(m.Cmd), version: DEFAULT_VERSION}
+	msg.FromData(m.Raw)
+
+	msgId, prevMsgId := storage.SaveGroupMessage(m.AppId, m.GroupId, m.DeviceID, msg)
+	return [2]int64{msgId, prevMsgId}, nil
+}

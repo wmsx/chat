@@ -35,6 +35,7 @@ func ListenRPCClient() {
 	dispatcher.AddFunc("SyncMessage", SyncMessage)
 	dispatcher.AddFunc("SavePeerMessage", SavePeerMessage)
 	dispatcher.AddFunc("SavePeerGroupMessage", SavePeerGroupMessage)
+	dispatcher.AddFunc("SaveGroupMessage", SaveGroupMessage)
 
 	s := gorpc.Server{
 		Addr:    config.rpcListen,
