@@ -169,5 +169,16 @@ func (client *GroupClient) HandleGroupSync(groupSyncKey *GroupSyncKey) {
 }
 
 func (client *GroupClient) HandleGroupSyncKey(groupSyncKey *GroupSyncKey) {
+	groupId := groupSyncKey.groupId
+	lastId := groupSyncKey.syncKey
 
+	if lastId > 0 {
+		s := &SyncGroupHistory{
+			AppId:     client.appId,
+			UID:       client.uid,
+			GroupId:   groupId,
+			LastMsgId: lastId,
+		}
+		syncGroupChan <- s
+	}
 }

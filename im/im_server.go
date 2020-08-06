@@ -17,6 +17,7 @@ var rpcClients []*gorpc.DispatcherClient
 var groupRpcClients []*gorpc.DispatcherClient
 
 var syncChan chan *SyncHistory
+var syncGroupChan chan *SyncGroupHistory
 
 //round-robin
 var currentDeliverIndex uint64
@@ -32,6 +33,7 @@ var appRoute *AppRoute
 func init() {
 	appRoute = NewAppRoute()
 	syncChan = make(chan *SyncHistory, 100)
+	syncGroupChan = make(chan *SyncGroupHistory, 100)
 }
 
 func main() {
@@ -155,9 +157,16 @@ func SyncKeyService() {
 				log.WithFields(log.Fields{"appId": s.AppID, "uid": s.UID, "lastMsgId": s.LastMsgID}).Infof("save sync key")
 				SaveSyncKey(s.AppID, s.UID, s.LastMsgID)
 			}
+		case s := <-syncGroupChan:
+			origin := GetGroupSyncKey(s.AppId, s.UID, s.GroupId)
+			if s.LastMsgId > origin {
+				SaveGroupSyncKey(s.AppId, s.UID, s.GroupId, s.LastMsgId)
+			}
 		}
 	}
 }
+
+
 
 func initLog() {
 	if config.logFilename != "" {

@@ -71,3 +71,30 @@ func SaveSyncKey(appId, uid int64, syncKey int64) {
 		log.WithField("err", err).Warning("hset失败")
 	}
 }
+
+func GetGroupSyncKey(appId int64, uid int64, groupId int64) int64 {
+	conn := redisPool.Get()
+	defer conn.Close()
+
+	key := fmt.Sprintf("users_%d_%d", appId, uid)
+	field := fmt.Sprintf("group_sync_key_%d", groupId)
+
+	origin, err := redis.Int64(conn.Do("HGET", key, field))
+	if err != nil {
+		return 0
+	}
+	return origin
+}
+
+func SaveGroupSyncKey(appId, uid, gid, syncKey int64) {
+	conn := redisPool.Get()
+	defer conn.Close()
+
+	key := fmt.Sprintf("users_%d_%d", appId, uid)
+	field := fmt.Sprintf("group_sync_key_%d", gid)
+
+	_, err := conn.Do("HSET", key, field, syncKey)
+	if err != nil {
+		log.WithField("err", err).Warning("hset group sync key失败")
+	}
+}
