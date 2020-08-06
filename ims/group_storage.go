@@ -145,3 +145,49 @@ func (storage *Storage) saveGroupIndex(messageIndex map[GroupId]*GroupIndex) {
 	}
 	log.Info("群组消息索引文件刷入到磁盘成功")
 }
+
+//获取所有消息id大于msgid的消息
+//ts:入群时间
+func (storage *GroupStorage) LoadGroupHistoryMessage(appId, uid, gid, msgId int64, ts int32, limit int) ([]*EMessage, int64) {
+	log.WithFields(log.Fields{"msgId": msgId, "ts": ts}).Info("加载群组历史消息")
+	messageIndex := storage.getGroupIndex(appId, gid)
+	lastId := messageIndex.lastId
+
+	var lastMsgId int64
+	c := make([]*EMessage, 0, 10)
+
+	for ; lastId > 0; {
+		msg := storage.LoadMessage(lastId)
+		if msg == nil {
+			log.WithField("msgId", msgId).Warning("加载群组消息失败")
+			break
+		}
+
+		off := msg.body.(*OfflineMessage)
+
+		if lastMsgId == 0 {
+			lastMsgId = off.msgId
+		}
+
+		if off.msgId == 0 || off.msgId <= msgId {
+			break
+		}
+
+		m  := storage.LoadMessage(off.msgId)
+		if msgId == 0 && m.cmd == MSG_GROUP_IM {
+			im := m.body.(*IMMessage)
+			if im.timestamp < ts {
+				break
+			}
+		}
+		c = append(c, &EMessage{msgId:off.msgId, deviceId:off.deviceID, msg:m})
+
+		lastId = off.prevMsgId
+
+		if len(c) >= limit {
+			break
+		}
+	}
+
+	return c, lastMsgId
+}

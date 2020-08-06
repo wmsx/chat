@@ -40,3 +40,20 @@ func SaveGroupMessage(addr string, m *GroupMessage) ([2]int64, error) {
 	msgId, prevMsgId := storage.SaveGroupMessage(m.AppId, m.GroupId, m.DeviceID, msg)
 	return [2]int64{msgId, prevMsgId}, nil
 }
+
+func SyncGroupMessage(addr string, syncKey *SyncGroupHistory) *GroupHistoryMessage {
+	messages, lastMsgId := storage.LoadGroupHistoryMessage(syncKey.AppId, syncKey.UID, syncKey.GroupId, syncKey.LastMsgId, syncKey.Timestamp, GROUP_OFFLINE_LIMIT)
+
+	historyMessages := make([]*HistoryMessage, 0, 10)
+	for _, emsg := range messages {
+		hm := &HistoryMessage{}
+		hm.MsgID = emsg.msgId
+		hm.DeviceID = emsg.deviceId
+		hm.Cmd = int32(emsg.msg.cmd)
+
+		emsg.msg.version = DEFAULT_VERSION
+		hm.Raw = emsg.msg.ToData()
+		historyMessages = append(historyMessages, hm)
+	}
+	return &GroupHistoryMessage{Messages:historyMessages, LastMsgId:lastMsgId, HasMore:false}
+}

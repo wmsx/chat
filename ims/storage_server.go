@@ -16,7 +16,6 @@ func main() {
 
 	storage = NewStorage(config.storageRoot)
 
-
 	go FlushIndexLoop()
 
 	ListenRPCClient()
@@ -36,6 +35,7 @@ func ListenRPCClient() {
 	dispatcher.AddFunc("SavePeerMessage", SavePeerMessage)
 	dispatcher.AddFunc("SavePeerGroupMessage", SavePeerGroupMessage)
 	dispatcher.AddFunc("SaveGroupMessage", SaveGroupMessage)
+	dispatcher.AddFunc("SyncGroupMessage", SyncGroupMessage)
 
 	s := gorpc.Server{
 		Addr:    config.rpcListen,

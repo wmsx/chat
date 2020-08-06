@@ -1,5 +1,8 @@
 package main
 
+// 超级群离线消息数量限制，超过的部分会被丢弃
+const GROUP_OFFLINE_LIMIT = 100
+
 type StorageConfig struct {
 	rpcListen         string
 	storageRoot       string
