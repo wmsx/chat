@@ -67,12 +67,22 @@ func (client *Connection) SendMessage(uid int64, msg *Message) {
 	DispatchMessageToPeer(msg, uid, appId, client.Client())
 }
 
-func (client *GroupClient) sendGroupMessage(group *Group, msg *Message) {
+func (client *Connection) sendGroupMessage(group *Group, msg *Message) {
 	appId := client.appId
 	PublishGroupMessage(appId, group.gid, msg)
 	DispatchMessageToGroup(msg, group, appId, client.Client())
 }
 
+func (client *Connection) isSender(msg *Message, deviceID int64) bool {
+	if msg.cmd == MSG_IM || msg.cmd == MSG_GROUP_IM {
+		m := msg.body.(*IMMessage)
+		if m.sender == client.uid && deviceID == client.deviceID {
+			return true
+		}
+	}
+
+	return false
+}
 
 func (client *Connection) Client() *Client {
 	p := unsafe.Pointer(client)

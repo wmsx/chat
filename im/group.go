@@ -27,6 +27,11 @@ func (group *Group) Members() map[int64]int64 {
 	return group.members
 }
 
+func (group *Group) GetMemberTimestamp(uid int64) int {
+	ts, _ := group.members[uid]
+	return int(ts & 0x7FFFFFFF)
+}
+
 func NewGroup(gid int64, appId int64, members map[int64]int64) *Group {
 	return &Group{
 		gid:     gid,

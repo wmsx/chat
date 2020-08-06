@@ -14,6 +14,10 @@ func (client *GroupClient) HandleMessage(msg *Message) {
 	switch msg.cmd {
 	case MSG_GROUP_IM:
 		client.HandleGroupIMMessage(msg)
+	case MSG_SYNC_GROUP:
+		client.HandleGroupSync(msg.body.(*GroupSyncKey))
+	case MSG_GROUP_SYNC_KEY:
+		client.HandleGroupSyncKey(msg.body.(*GroupSyncKey))
 	}
 }
 
@@ -112,3 +116,58 @@ func (client *GroupClient) HandleSuperGroupMessage(msg *IMMessage, group *Group)
 	return msgId, prevMsgId, nil
 }
 
+func (client *GroupClient) HandleGroupSync(groupSyncKey *GroupSyncKey) {
+	groupId := groupSyncKey.groupId
+	group := groupManager.LoadGroup(groupId)
+	if group == nil {
+		log.WithField("groupId", groupId).Warning("不能找到群组")
+		return
+	}
+
+	ts := group.GetMemberTimestamp(client.uid)
+
+	lastId := groupSyncKey.syncKey
+
+	syncGroupHistory := &SyncGroupHistory{
+		AppId:     client.appId,
+		UID:       client.uid,
+		DeviceID:  client.deviceID,
+		GroupId:   groupId,
+		LastMsgId: lastId,
+		Timestamp: int32(ts),
+	}
+
+	rpc := GetGroupStorageRPCClient(groupId)
+	resp, err := rpc.Call("SyncGroupMessage", syncGroupHistory)
+	if err != nil {
+		log.WithField("err", err).Warning("同步群组消息失败")
+		return
+	}
+
+	gh := resp.(*GroupHistoryMessage)
+	messages := gh.Messages
+
+	sk := &GroupSyncKey{syncKey: lastId, groupId: groupId}
+	client.EnqueueMessage(&Message{cmd: MSG_SYNC_GROUP_BEGIN, body: sk})
+
+	for i := len(messages) - 1; i >= 0; i-- {
+		msg := messages[i]
+		m := &Message{cmd:int(msg.Cmd), version:DEFAULT_VERSION}
+		m.FromData(msg.Raw)
+		sk.syncKey = msg.MsgID
+		if client.isSender(m, msg.DeviceID) {
+			m.flag |= MESSAGE_FLAG_SELF
+		}
+		client.EnqueueMessage(m)
+	}
+
+	if  gh.LastMsgId < lastId && gh.LastMsgId > 0 {
+		sk.syncKey = gh.LastMsgId
+		log.WithFields(log.Fields{"groupId": groupId, "lastId": lastId, "lastMsgId": gh.LastMsgId}).Warning("群组同步消息的最新id大于服务端消息的最新id")
+	}
+	client.EnqueueMessage(&Message{cmd:MSG_SYNC_GROUP_END, body:sk})
+}
+
+func (client *GroupClient) HandleGroupSyncKey(groupSyncKey *GroupSyncKey) {
+
+}
