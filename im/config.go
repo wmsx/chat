@@ -53,7 +53,7 @@ func readConfig() *Config {
 	config.groupRouteAddrs = []string{"sx-imr:4444"}
 
 	config.groupDeliverCount = 1
-	config.pendingRoot = "/data/pending"
+	config.pendingRoot = "/data/im/pending"
 
 	//config.logFilename = "/Users/zengqiang96/logs/im.log"
 	config.logAge = 30
