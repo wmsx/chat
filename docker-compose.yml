@@ -22,6 +22,9 @@ services:
       - /opt/store4/docker/im/:/data/im/pending
     networks:
       - sx-net
+    depends_on:
+      - imr
+      - ims
 networks:
   sx-net:
     external: true # 使用自定义创建好的网络，我创建的网络名加sx-net，方便与其他服务通信
