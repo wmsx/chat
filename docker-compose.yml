@@ -20,6 +20,8 @@ services:
     restart: always
     volumes:
       - /opt/store4/docker/im/:/data/im/pending
+    ports:
+      - "23000:23000"
     networks:
       - sx-net
     depends_on:
