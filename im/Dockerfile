@@ -23,5 +23,7 @@ WORKDIR /app
 
 COPY --from=builder /app/sx-im .
 
+EXPOSE 23000
+
 ENTRYPOINT ["/app/sx-im"]
 

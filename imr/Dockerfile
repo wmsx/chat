@@ -22,5 +22,7 @@ WORKDIR /app
 
 COPY --from=builder /app/sx-imr .
 
+EXPOSE 4444
+
 ENTRYPOINT ["/app/sx-imr"]
 
