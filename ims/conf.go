@@ -27,7 +27,7 @@ func readStorageConf() *StorageConfig {
 	config := new(StorageConfig)
 
 	config.rpcListen = ":13333"
-	config.storageRoot = "/Users/zengqiang96/ims"
+	config.storageRoot = "/data/ims"
 
 	//config.logFilename = "/Users/zengqiang96/logs/ims.log"
 	config.logAge = 30

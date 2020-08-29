@@ -1,0 +1,27 @@
+version: "3.7"
+services:
+  ims:
+    container_name: sx-ims
+    image: sx-ims:latest
+    restart: always
+    volumes:
+      - /opt/store4/docker/ims/:/data/ims
+    networks:
+      - sx-net
+  imr:
+    container_name: sx-imr
+    image: sx-imr:latest
+    restart: always
+    networks:
+      - sx-net
+  im:
+    container_name: sx-im
+    image: sx-im:latest
+    restart: always
+    volumes:
+      - /opt/store4/docker/im/:/data/im/pending
+    networks:
+      - sx-net
+networks:
+  sx-net:
+    external: true # 使用自定义创建好的网络，我创建的网络名加sx-net，方便与其他服务通信

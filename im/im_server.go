@@ -77,17 +77,6 @@ func main() {
 		}
 	}
 
-	if len(config.routeAddrs) > 0 {
-		routeChannels = make([]*Channel, 0)
-		for _, addr := range config.routeAddrs {
-			channel := NewChannel(addr, DispatchAppMessage, DispatchGroupMessage)
-			channel.Start()
-			routeChannels = append(routeChannels, channel)
-		}
-	} else {
-		log.Fatal("route服务器配置为空")
-	}
-
 	if len(config.groupRouteAddrs) > 0 {
 		groupRouteChannels = make([]*Channel, 0)
 		for _, addr := range config.groupRouteAddrs {
