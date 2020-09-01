@@ -6,11 +6,10 @@ import (
 	"sync/atomic"
 )
 
-func SaveMessage(appId, uid, deviceID int64, m *Message) (int64, int64, error) {
+func SaveMessage(uid, deviceID int64, m *Message) (int64, int64, error) {
 	dc := GetStorageRPCClient(uid)
 
 	pm := &PeerMessage{
-		AppID:    appId,
 		UID:      uid,
 		DeviceID: deviceID,
 		Cmd:      int32(m.cmd),
@@ -26,7 +25,7 @@ func SaveMessage(appId, uid, deviceID int64, m *Message) (int64, int64, error) {
 	r := resp.([2]int64)
 	msgId := r[0]
 	prevMsgId := r[1]
-	log.Infof("save peer message:%d %d %d %d\n", appId, uid, deviceID, msgId)
+	log.Infof("save peer message: %d %d %d\n", uid, deviceID, msgId)
 	return msgId, prevMsgId, nil
 }
 
@@ -56,11 +55,10 @@ func SavePeerGroupMessage(members []int64, deviceID int64, m *Message) ([]int64,
 	return r, nil
 }
 
-func SaveGroupMessage(appId, gid int64, deviceID int64, msg *Message) (int64, int64, error) {
+func SaveGroupMessage( gid int64, deviceID int64, msg *Message) (int64, int64, error) {
 	dc := GetGroupStorageRPCClient(gid)
 
 	gm := &GroupMessage{
-		AppId:    appId,
 		GroupId:  gid,
 		DeviceID: deviceID,
 		Cmd:      int32(msg.cmd),
@@ -75,7 +73,7 @@ func SaveGroupMessage(appId, gid int64, deviceID int64, msg *Message) (int64, in
 	r := resp.([2]int64)
 	msgId := r[0]
 	prevMsgId := r[1]
-	log.WithFields(log.Fields{"appId": appId, "gid": gid, "msgId": msgId}).Info("保存群组消息成功")
+	log.WithFields(log.Fields{ "gid": gid, "msgId": msgId}).Info("保存群组消息成功")
 	return msgId, prevMsgId, nil
 }
 
@@ -94,8 +92,8 @@ func PublishMessage(uid int64, msg *Message) {
 	channel.Publish(amsg)
 }
 
-func PublishGroupMessage(appId, gid int64, msg *Message) {
-	amsg := &AppMessage{appId: appId, receiver: gid, msg: msg}
+func PublishGroupMessage(gid int64, msg *Message) {
+	amsg := &AppMessage{receiver: gid, msg: msg}
 	if msg.meta != nil {
 		amsg.msgId = msg.meta.syncKey
 		amsg.prevMsgId = msg.meta.prevSyncKey
@@ -173,7 +171,7 @@ func DispatchGroupMessage(amsg *AppMessage) {
 	deliver.DispatchMessage(amsg)
 }
 
-func DispatchMessageToGroup(msg *Message, group *Group, appId int64, client *Client) bool {
+func DispatchMessageToGroup(msg *Message, group *Group, client *Client) bool {
 	if group == nil {
 		return false
 	}

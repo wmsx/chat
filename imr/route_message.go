@@ -21,7 +21,6 @@ func init() {
 }
 
 type AppMessage struct {
-	appId     int64
 	receiver  int64
 	msgId     int64
 	prevMsgId int64
@@ -35,7 +34,6 @@ func (amsg *AppMessage) ToData() []byte {
 		return nil
 	}
 	buffer := new(bytes.Buffer)
-	binary.Write(buffer, binary.BigEndian, amsg.appId)
 	binary.Write(buffer, binary.BigEndian, amsg.receiver)
 	binary.Write(buffer, binary.BigEndian, amsg.msgId)
 	binary.Write(buffer, binary.BigEndian, amsg.deviceID)
@@ -57,7 +55,6 @@ func (amsg *AppMessage) FromData(buff []byte) bool {
 	}
 
 	buffer := bytes.NewBuffer(buff)
-	binary.Read(buffer, binary.BigEndian, &amsg.appId)
 	binary.Read(buffer, binary.BigEndian, &amsg.receiver)
 	binary.Read(buffer, binary.BigEndian, &amsg.msgId)
 	binary.Read(buffer, binary.BigEndian, &amsg.deviceID)

@@ -8,7 +8,7 @@ type PeerClient struct {
 
 func (client *PeerClient) Login() {
 	channel := GetChannel(client.uid)
-	channel.Subscribe(client.appId, client.uid, client.online)
+	channel.Subscribe(client.uid, client.online)
 }
 
 func (client *PeerClient) HandleMessage(msg *Message) {
@@ -25,7 +25,6 @@ func (client *PeerClient) HandleMessage(msg *Message) {
 func (client *PeerClient) HandleSyncKey(syncKey *SyncKey) {
 	lastId := syncKey.syncKey
 	log.WithFields(log.Fields{
-		"appId":    client.appId,
 		"uid":      client.uid,
 		"deviceID": client.deviceID,
 		"lastId":   lastId,
@@ -33,7 +32,6 @@ func (client *PeerClient) HandleSyncKey(syncKey *SyncKey) {
 
 	if lastId > 0 {
 		s := &SyncHistory{
-			AppID:     client.appId,
 			UID:       client.uid,
 			LastMsgID: lastId,
 		}
@@ -47,14 +45,12 @@ func (client *PeerClient) HandleSync(syncKey *SyncKey) {
 	rpc := GetStorageRPCClient(client.uid)
 
 	s := &SyncHistory{
-		AppID:     client.appId,
 		UID:       client.uid,
 		DeviceID:  client.deviceID,
 		LastMsgID: lastId,
 	}
 
 	log.WithFields(log.Fields{
-		"appId":    client.appId,
 		"uid":      client.uid,
 		"deviceID": client.deviceID,
 		"lastId":   lastId,
@@ -98,20 +94,18 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 	seq := message.seq
 
 	m := &Message{cmd: MSG_IM, version: DEFAULT_VERSION, body: msg}
-	msgId, prevMsgId, err := SaveMessage(client.appId, msg.receiver, client.deviceID, m)
+	msgId, prevMsgId, err := SaveMessage(msg.receiver, client.deviceID, m)
 	if err != nil {
 		log.WithFields(log.Fields{"sender": msg.sender, "receiver": msg.receiver, "err": err}).Error("保存peer消息失败")
 		return
 	}
 
 	// 保存到自己的消息队列，用户的其他登录点也能接受到自己发出的消息
-	msgId2, prevMsgId2, err := SaveMessage(client.appId, msg.sender, client.deviceID, m)
+	msgId2, prevMsgId2, err := SaveMessage(msg.sender, client.deviceID, m)
 	if err != nil {
 		log.WithFields(log.Fields{"sender": msg.sender, "receiver": msg.receiver, "err": err}).Error("保存peer消息失败")
 		return
 	}
-
-	//PushMessage(client.appId, msg.receiver, m)
 
 	// 推送给接受方
 	meta := &Metadata{syncKey: msgId, prevSyncKey: prevMsgId}
@@ -133,6 +127,6 @@ func (client *PeerClient) HandleIMMessage(message *Message) {
 func (client *PeerClient) Logout() {
 	if client.uid > 0 {
 		channel := GetChannel(client.uid)
-		channel.Unsubscribe(client.appId, client.uid, client.online)
+		channel.Unsubscribe(client.uid, client.online)
 	}
 }

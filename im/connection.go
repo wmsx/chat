@@ -23,7 +23,6 @@ type Connection struct {
 	sequence int // 发送给客户端的消息序号
 	version  int //客户端协议版本号
 
-	appId      int64
 	uid        int64
 	deviceId   string
 	deviceID   int64
@@ -67,9 +66,8 @@ func (client *Connection) SendMessage(uid int64, msg *Message) {
 }
 
 func (client *Connection) sendGroupMessage(group *Group, msg *Message) {
-	appId := client.appId
-	PublishGroupMessage(appId, group.gid, msg)
-	DispatchMessageToGroup(msg, group, appId, client.Client())
+	PublishGroupMessage(group.gid, msg)
+	DispatchMessageToGroup(msg, group, client.Client())
 }
 
 func (client *Connection) isSender(msg *Message, deviceID int64) bool {

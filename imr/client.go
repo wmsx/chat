@@ -123,7 +123,7 @@ func (client *Client) HandleUnsubscribe(id *UserID) {
 }
 
 func (client *Client) HandlePublishGroup(amsg *AppMessage) {
-	log.WithFields(log.Fields{"appId": amsg.appId, "msgId": amsg.msgId, "receiver": amsg.receiver, "cmd": amsg.msg.cmd}).Info("分发群组消息")
+	log.WithFields(log.Fields{ "msgId": amsg.msgId, "receiver": amsg.receiver, "cmd": amsg.msg.cmd}).Info("分发群组消息")
 	// 群发给所有接入服务器
 	s := GetClientSet()
 

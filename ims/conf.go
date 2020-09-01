@@ -6,7 +6,6 @@ const GROUP_OFFLINE_LIMIT = 100
 type StorageConfig struct {
 	rpcListen         string
 	storageRoot       string
-	kefuAppId         int64
 	httpListenAddress string
 
 	syncListen    string

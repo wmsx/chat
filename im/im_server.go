@@ -148,15 +148,15 @@ func SyncKeyService() {
 	for {
 		select {
 		case s := <-syncChan:
-			origin := GetSyncKey(s.AppID, s.UID)
+			origin := GetSyncKey(s.UID)
 			if s.LastMsgID > origin {
-				log.WithFields(log.Fields{"appId": s.AppID, "uid": s.UID, "lastMsgId": s.LastMsgID}).Infof("save sync key")
-				SaveSyncKey(s.AppID, s.UID, s.LastMsgID)
+				log.WithFields(log.Fields{"uid": s.UID, "lastMsgId": s.LastMsgID}).Infof("save sync key")
+				SaveSyncKey(s.UID, s.LastMsgID)
 			}
 		case s := <-syncGroupChan:
-			origin := GetGroupSyncKey(s.AppId, s.UID, s.GroupId)
+			origin := GetGroupSyncKey( s.UID, s.GroupId)
 			if s.LastMsgId > origin {
-				SaveGroupSyncKey(s.AppId, s.UID, s.GroupId, s.LastMsgId)
+				SaveGroupSyncKey(s.UID, s.GroupId, s.LastMsgId)
 			}
 		}
 	}
