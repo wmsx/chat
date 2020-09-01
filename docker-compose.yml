@@ -8,8 +8,22 @@ services:
       - /opt/store4/docker/ims/:/data/ims
     networks:
       - sx-net
+  imgs:
+    container_name: sx-imgs
+    image: sx-ims:latest
+    restart: always
+    volumes:
+      - /opt/store4/docker/imgs/:/data/imgs
+    networks:
+      - sx-net
   imr:
     container_name: sx-imr
+    image: sx-imr:latest
+    restart: always
+    networks:
+      - sx-net
+  imgr:
+    container_name: sx-imgr
     image: sx-imr:latest
     restart: always
     networks:
