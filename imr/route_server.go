@@ -95,8 +95,8 @@ func NewRedisPool(server, password string, db int) *redis.Pool {
 	}
 }
 
-func IsUserOnline(appId, uid int64) bool {
-	id := &AppUserID{appId: appId, uid: uid}
+func IsUserOnline(uid int64) bool {
+	id := &UserID{ uid: uid}
 	for c := range clients {
 		if c.IsAppUserOnline(id) {
 			return true

@@ -3,14 +3,12 @@ package main
 import "sync"
 
 type Route struct {
-	appId int64
 	mutex sync.Mutex
 	uids  map[int64]bool
 }
 
-func NewRoute(appId int64) *Route {
+func NewRoute() *Route {
 	r := new(Route)
-	r.appId = appId
 	r.uids = make(map[int64]bool)
 	return r
 }

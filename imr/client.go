@@ -17,14 +17,14 @@ type Client struct {
 
 	conn *net.TCPConn
 
-	appRoute *AppRoute
+	route *Route
 }
 
 func NewClient(conn *net.TCPConn) *Client {
 	client := new(Client)
 	client.conn = conn
 	client.wt = make(chan *Message, 10)
-	client.appRoute = NewAppRoute()
+	client.route = NewRoute()
 	return client
 }
 
@@ -71,11 +71,11 @@ func (client *Client) HandleMessage(msg *Message) {
 }
 
 func (client *Client) HandlePush(pmsg *BatchPushMessage) {
-	log.Infof("push message appId:%d cmd:%s", pmsg.appId, Command(pmsg.msg.cmd))
+	log.Infof("push message cmd:%s", Command(pmsg.msg.cmd))
 
 	offMembers := make([]int64, 0)
 	for _, uid := range pmsg.receivers {
-		if !IsUserOnline(pmsg.appId, uid) {
+		if !IsUserOnline(uid) {
 			offMembers = append(offMembers, uid)
 		}
 	}
@@ -89,18 +89,15 @@ func (client *Client) HandlePush(pmsg *BatchPushMessage) {
 
 }
 
-func (client *Client) IsAppUserOnline(id *AppUserID) bool {
-	route := client.appRoute.FindRoute(id.appId)
-	if route == nil {
-		return false
-	}
+func (client *Client) IsAppUserOnline(id *UserID) bool {
+	route := client.route
 	return route.IsUserOnline(id.uid)
 }
 
 func (client *Client) HandlePublish(amsg *AppMessage) {
-	log.Infof("publish message appid:%d uid:%d msgid:%d cmd:%d", amsg.appId, amsg.receiver, amsg.msgId, Command(amsg.msg.cmd))
+	log.Infof("publish message uid:%d msgid:%d cmd:%d", amsg.receiver, amsg.msgId, Command(amsg.msg.cmd))
 
-	receiver := &AppUserID{appId: amsg.appId, uid: amsg.receiver}
+	receiver := &UserID{uid: amsg.receiver}
 	s := FindClientSet(receiver)
 
 	msg := &Message{cmd: MSG_PUBLISH, body: amsg}
@@ -112,11 +109,8 @@ func (client *Client) HandlePublish(amsg *AppMessage) {
 	}
 }
 
-func (client *Client) ContainAppUserID(id *AppUserID) bool {
-	route := client.appRoute.FindRoute(id.appId)
-	if route == nil {
-		return false
-	}
+func (client *Client) ContainAppUserID(id *UserID) bool {
+	route := client.route
 	return route.ContainUserID(id.uid)
 }
 
@@ -150,10 +144,10 @@ func (client *Client) HandleSubscribe(id *SubscribeMessage) {
 	route.AddUserID(id.uid, on)
 }
 
-func (client *Client) HandleUnsubscribe(id *AppUserID) {
-	log.Infof("unsubscribe appid:%d uid:%d", id.appId, id.uid)
+func (client *Client) HandleUnsubscribe(id *UserID) {
+	log.Infof("unsubscribe uid:%d", id.uid)
 
-	route := client.appRoute.FindOrAddRoute(id.appId)
+	route := client.route
 	route.RemoveUserID(id.uid)
 }
 

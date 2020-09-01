@@ -22,7 +22,6 @@ func init() {
 }
 
 type BatchPushMessage struct {
-	appId     int64
 	receivers []int64
 	msg       *Message
 }

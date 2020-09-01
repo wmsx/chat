@@ -8,7 +8,6 @@ type PeerClient struct {
 
 func (client *PeerClient) Login() {
 	channel := GetChannel(client.uid)
-
 	channel.Subscribe(client.appId, client.uid, client.online)
 }
 
