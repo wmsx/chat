@@ -4,16 +4,16 @@ services:
     container_name: sx-ims
     image: sx-ims:latest
     restart: always
-#    volumes:
-#      - /opt/store4/docker/ims/:/data/ims
+    volumes:
+      - /opt/store4/docker/ims/:/data/ims
     networks:
       - sx-net
   imgs:
     container_name: sx-imgs
     image: sx-ims:latest
     restart: always
-#    volumes:
-#      - /opt/store4/docker/imgs/:/data/imgs
+    volumes:
+      - /opt/store4/docker/imgs/:/data/imgs
     networks:
       - sx-net
   imr:
@@ -32,8 +32,8 @@ services:
     container_name: sx-im
     image: sx-im:latest
     restart: always
-#    volumes:
-#      - /opt/store4/docker/im/:/data/im/pending
+    volumes:
+      - /opt/store4/docker/im/:/data/im/pending
     ports:
       - "23000:23000"
     networks:

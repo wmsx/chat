@@ -67,7 +67,6 @@ func (client *GroupClient) HandleGroupIMMessage(message *Message) {
 
 func (client *GroupClient) HandleGroupMessage(im *IMMessage, group *Group) (int64, int64, error) {
 	gm := &PendingGroupMessage{}
-	gm.appId = client.appId
 	gm.sender = im.sender
 	gm.deviceID = client.deviceID
 	gm.gid = im.receiver
@@ -101,7 +100,7 @@ func (client *GroupClient) HandleGroupMessage(im *IMMessage, group *Group) (int6
 
 func (client *GroupClient) HandleSuperGroupMessage(msg *IMMessage, group *Group) (int64, int64, error) {
 	m := &Message{cmd: MSG_GROUP_IM, version: DEFAULT_VERSION, body: msg}
-	msgId, prevMsgId, err := SaveGroupMessage(client.appId, msg.receiver, client.deviceID, m)
+	msgId, prevMsgId, err := SaveGroupMessage( msg.receiver, client.deviceID, m)
 	if err != nil {
 		log.WithFields(log.Fields{"sender:": msg.sender, "receiver": msg.receiver, "err": err}).Error("保存群组消息失败")
 		return 0, 0, nil
@@ -129,7 +128,6 @@ func (client *GroupClient) HandleGroupSync(groupSyncKey *GroupSyncKey) {
 	lastId := groupSyncKey.syncKey
 
 	syncGroupHistory := &SyncGroupHistory{
-		AppId:     client.appId,
 		UID:       client.uid,
 		DeviceID:  client.deviceID,
 		GroupId:   groupId,
@@ -174,7 +172,6 @@ func (client *GroupClient) HandleGroupSyncKey(groupSyncKey *GroupSyncKey) {
 
 	if lastId > 0 {
 		s := &SyncGroupHistory{
-			AppId:     client.appId,
 			UID:       client.uid,
 			GroupId:   groupId,
 			LastMsgId: lastId,

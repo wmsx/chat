@@ -153,7 +153,7 @@ func (client *Client) HandlePing() {
 
 func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 	var err error
-	appId, uid, _, on, err := client.AuthToken(login.token)
+	uid, _, on, err := client.AuthToken(login.token)
 
 	// 鉴权没通过
 	if err != nil {
@@ -177,7 +177,6 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 		online = false
 	}
 
-	client.appId = appId
 	client.uid = uid
 	client.deviceId = login.deviceId
 	client.platformId = login.platformId
@@ -192,21 +191,21 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 	client.PeerClient.Login()
 }
 
-func (client *Client) AuthToken(token string) (int64, int64, int, bool, error) {
-	appId, uid, err := LoadUserAccessToken(token)
+func (client *Client) AuthToken(token string) (int64, int, bool, error) {
+	uid, err := LoadUserAccessToken(token)
 	if err != nil {
-		return 0, 0, 0, false, err
+		return 0, 0, false, err
 	}
 
-	forbidden, notificationOn, err := GetUserPreferences(appId, uid)
+	forbidden, notificationOn, err := GetUserPreferences(uid)
 	if err != nil {
-		return 0, 0, 0, false, err
+		return 0, 0, false, err
 	}
 
-	return appId, uid, forbidden, notificationOn, nil
+	return uid, forbidden, notificationOn, nil
 }
 
-func GetUserPreferences(appId int64, uid int64) (int, bool, error) {
+func GetUserPreferences(uid int64) (int, bool, error) {
 	return 0, false, nil
 }
 

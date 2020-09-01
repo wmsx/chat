@@ -6,8 +6,6 @@ type Config struct {
 	mysqlDatasource string
 	pendingRoot     string
 
-	kefuAppId int64
-
 	redisAddress  string
 	redisPassword string
 	redisDB       int

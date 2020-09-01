@@ -14,7 +14,6 @@ func init() {
 
 //待发送的群组消息临时存储结构
 type PendingGroupMessage struct {
-	appId     int64
 	sender    int64
 	deviceID  int64 //发送者的设备id
 	gid       int64
@@ -26,7 +25,6 @@ type PendingGroupMessage struct {
 
 func (gm *PendingGroupMessage) ToData() []byte {
 	buffer := new(bytes.Buffer)
-	binary.Write(buffer, binary.BigEndian, gm.appId)
 	binary.Write(buffer, binary.BigEndian, gm.sender)
 	binary.Write(buffer, binary.BigEndian, gm.deviceID)
 	binary.Write(buffer, binary.BigEndian, gm.gid)
@@ -48,7 +46,6 @@ func (gm *PendingGroupMessage) FromData(buff []byte) bool {
 		return false
 	}
 	buffer := bytes.NewBuffer(buff)
-	binary.Read(buffer, binary.BigEndian, &gm.appId)
 	binary.Read(buffer, binary.BigEndian, &gm.sender)
 	binary.Read(buffer, binary.BigEndian, &gm.deviceID)
 	binary.Read(buffer, binary.BigEndian, &gm.gid)

@@ -269,9 +269,7 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 	for _, member := range gm.members {
 		groupMembers[member] = 0
 	}
-	// 离线推送，不需要
-	//group := NewGroup(gm.gid, gm.appId, groupMembers)
-	//PushGroupMessage(gm.appId, group, m)
+
 	return metadata, true
 }
 
@@ -453,5 +451,5 @@ func (storage *GroupMessageDeliver) DispatchMessage(msg *AppMessage) {
 		log.Warning("加载Group为空，不能分发Group消息")
 		return
 	}
-	DispatchMessageToGroup(msg.msg, group, msg.appId, nil)
+	DispatchMessageToGroup(msg.msg, group, nil)
 }
