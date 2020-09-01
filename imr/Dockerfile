@@ -15,7 +15,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o sx-imr imr/*.go
 FROM alpine:latest
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates tzdata
+
+ENV TZ Asia/Shanghai
 
 RUN mkdir /app
 WORKDIR /app

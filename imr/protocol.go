@@ -27,7 +27,7 @@ func ReceiveLimitMessage(conn io.Reader, limitSize int, external bool) (*Message
 	buff := make([]byte, 12)
 	_, err := io.ReadFull(conn, buff)
 	if err != nil {
-		log.Info("sock read error:", err)
+		log.WithField("err", err).Error("sock 读取失败")
 		return nil, err
 	}
 	length, seq, cmd, version, flag := ReadHeader(buff)
