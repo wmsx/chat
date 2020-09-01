@@ -239,7 +239,7 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 
 	metadata := &Metadata{}
 	for _, mb := range batchMembers {
-		r, err := SavePeerGroupMessage(gm.appId, mb, gm.deviceID, m)
+		r, err := SavePeerGroupMessage(mb, gm.deviceID, m)
 		if err != nil {
 			log.WithFields(log.Fields{"sender": gm.sender, "gid": gm.gid, "err": err}).Error("保存peer group message失败")
 			return nil, false
@@ -253,10 +253,10 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 			member := mb[i/2]
 			meta := &Metadata{syncKey: msgId, prevSyncKey: prevMsgId}
 			mm := &Message{cmd: MSG_GROUP_IM, version: DEFAULT_VERSION, flag: MESSAGE_FLAG_PUSH, body: msg, meta: meta}
-			storage.sendMessage(gm.appId, member, gm.sender, gm.deviceID, mm)
+			storage.sendMessage(member, gm.sender, gm.deviceID, mm)
 
 			notify := &Message{cmd: MSG_SYNC_NOTIFY, body: &SyncKey{syncKey: msgId}}
-			storage.sendMessage(gm.appId, member, gm.sender, gm.deviceID, notify)
+			storage.sendMessage(member, gm.sender, gm.deviceID, notify)
 
 			if member == gm.sender {
 				metadata.syncKey = msgId
@@ -277,18 +277,12 @@ func (storage *GroupMessageDeliver) sendGroupMessage(gm *PendingGroupMessage) (*
 
 // 推送给群中的成员
 //device_ID 发送者的设备ID
-func (storage *GroupMessageDeliver) sendMessage(appId, uid, sender, deviceID int64, msg *Message) bool {
+func (storage *GroupMessageDeliver) sendMessage(uid, sender, deviceID int64, msg *Message) bool {
 
 	// publish只是发送给群成员不在当前im机器上连接
-	PublishMessage(appId, uid, msg)
+	PublishMessage(uid, msg)
 
 	// 这里是处理连接在当前im机器上的群成员消息推送
-	route := appRoute.FindRoute(appId)
-	if route == nil {
-		log.WithFields(log.Fields{"appId": appId, "uid": uid, "cmd": msg.cmd}).Warn("不能发送消息")
-		return false
-	}
-
 	clients := route.FindClientSet(uid)
 	if len(clients) == 0 {
 		return false

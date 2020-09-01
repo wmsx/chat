@@ -5,15 +5,8 @@ import (
 	"net"
 )
 
-type Push struct {
-	queueName string
-	content   []byte
-}
-
 type Client struct {
 	wt chan *Message
-
-	pwt chan *Push
 
 	conn *net.TCPConn
 
@@ -31,7 +24,6 @@ func NewClient(conn *net.TCPConn) *Client {
 func (client *Client) Run() {
 	go client.Write()
 	go client.Read()
-	go client.Push()
 }
 
 func (client *Client) Read() {
@@ -58,35 +50,14 @@ func (client *Client) HandleMessage(msg *Message) {
 	case MSG_SUBSCRIBE:
 		client.HandleSubscribe(msg.body.(*SubscribeMessage))
 	case MSG_UNSUBSCRIBE:
-		client.HandleUnsubscribe(msg.body.(*AppUserID))
+		client.HandleUnsubscribe(msg.body.(*UserID))
 	case MSG_PUBLISH:
 		client.HandlePublish(msg.body.(*AppMessage))
 	case MSG_PUBLISH_GROUP:
 		client.HandlePublishGroup(msg.body.(*AppMessage))
-	case MSG_PUSH:
-		client.HandlePush(msg.body.(*BatchPushMessage))
 	default:
 		log.Warning("unknown message cmd:", msg.cmd)
 	}
-}
-
-func (client *Client) HandlePush(pmsg *BatchPushMessage) {
-	log.Infof("push message cmd:%s", Command(pmsg.msg.cmd))
-
-	offMembers := make([]int64, 0)
-	for _, uid := range pmsg.receivers {
-		if !IsUserOnline(uid) {
-			offMembers = append(offMembers, uid)
-		}
-	}
-
-	cmd := pmsg.msg.cmd
-	if len(offMembers) > 0 {
-		if cmd == MSG_IM {
-			client.PublishPeerMessage(pmsg.appId, pmsg.msg.body.(*IMMessage))
-		}
-	}
-
 }
 
 func (client *Client) IsAppUserOnline(id *UserID) bool {
@@ -138,8 +109,8 @@ func (client *Client) send(msg *Message) {
 }
 
 func (client *Client) HandleSubscribe(id *SubscribeMessage) {
-	log.Infof("subscribe appid:%d uid:%d online:%d", id.appId, id.uid, id.online)
-	route := client.appRoute.FindOrAddRoute(id.appId)
+	log.Infof("subscribe uid:%d online:%d", id.uid, id.online)
+	route := client.route
 	on := id.online != 0
 	route.AddUserID(id.uid, on)
 }

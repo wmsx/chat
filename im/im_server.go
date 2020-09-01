@@ -28,10 +28,10 @@ var groupManager *GroupManager
 //route server
 var routeChannels []*Channel
 var groupRouteChannels []*Channel
-var appRoute *AppRoute
+var route *Route
 
 func init() {
-	appRoute = NewAppRoute()
+	route = NewRoute()
 	syncChan = make(chan *SyncHistory, 100)
 	syncGroupChan = make(chan *SyncGroupHistory, 100)
 }

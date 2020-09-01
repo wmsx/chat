@@ -138,7 +138,7 @@ func (channel *Channel) Unsubscribe(appId int64, uid int64, online bool) {
 	log.Info("unsub count:", count, onlineCount)
 	if count == 1 {
 		// 用户断开全部连接
-		id := &AppUserID{appId: appId, uid: uid}
+		id := &UserID{ uid: uid}
 		msg := &Message{cmd: MSG_UNSUBSCRIBE, body: id}
 		channel.wt <- msg
 	} else if count > 1 && onlineCount == 1 && online {

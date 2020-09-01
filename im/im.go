@@ -30,7 +30,7 @@ func SaveMessage(appId, uid, deviceID int64, m *Message) (int64, int64, error) {
 	return msgId, prevMsgId, nil
 }
 
-func SavePeerGroupMessage(appId int64, members []int64, deviceID int64, m *Message) ([]int64, error) {
+func SavePeerGroupMessage(members []int64, deviceID int64, m *Message) ([]int64, error) {
 	if len(members) == 0 {
 		return nil, nil
 	}
@@ -39,7 +39,6 @@ func SavePeerGroupMessage(appId int64, members []int64, deviceID int64, m *Messa
 	dc := GetStorageRPCClient(members[0])
 
 	pm := &PeerGroupMessage{
-		AppId:    appId,
 		Members:  members,
 		DeviceID: deviceID,
 		Cmd:      int32(m.cmd),
@@ -53,7 +52,7 @@ func SavePeerGroupMessage(appId int64, members []int64, deviceID int64, m *Messa
 	}
 
 	r := resp.([]int64)
-	log.Infof("save peer group message:%d %v %d %v\n", appId, members, deviceID, r)
+	log.Infof("save peer group message:%v %d %v\n", members, deviceID, r)
 	return r, nil
 }
 
@@ -85,8 +84,8 @@ func GetGroupStorageRPCClient(gid int64) *gorpc.DispatcherClient {
 	return groupRpcClients[index]
 }
 
-func PublishMessage(appId, uid int64, msg *Message) {
-	amsg := &AppMessage{appId: appId, receiver: uid, msg: msg}
+func PublishMessage(uid int64, msg *Message) {
+	amsg := &AppMessage{receiver: uid, msg: msg}
 	if msg.meta != nil {
 		amsg.msgId = msg.meta.syncKey
 		amsg.prevMsgId = msg.meta.prevSyncKey
@@ -110,12 +109,7 @@ func GetGroupChannel(gid int64) *Channel {
 	return groupRouteChannels[index]
 }
 
-func DispatchMessageToPeer(msg *Message, uid, appId int64, client *Client) bool {
-	route := appRoute.FindRoute(appId)
-	if route == nil {
-		log.Warningf("can't dispatch app message, appid:%d uid:%d cmd:%s", appId, uid, Command(msg.cmd))
-		return false
-	}
+func DispatchMessageToPeer(msg *Message, uid int64, client *Client) bool {
 	clients := route.FindClientSet(uid)
 	if len(clients) == 0 {
 		return false
@@ -164,7 +158,7 @@ func DispatchAppMessage(amsg *AppMessage) {
 		meta := &Metadata{syncKey: amsg.msgId, prevSyncKey: amsg.prevMsgId}
 		amsg.msg.meta = meta
 	}
-	DispatchMessageToPeer(amsg.msg, amsg.receiver, amsg.appId, nil)
+	DispatchMessageToPeer(amsg.msg, amsg.receiver, nil)
 }
 
 func DispatchGroupMessage(amsg *AppMessage) {
@@ -186,12 +180,6 @@ func DispatchGroupMessage(amsg *AppMessage) {
 
 func DispatchMessageToGroup(msg *Message, group *Group, appId int64, client *Client) bool {
 	if group == nil {
-		return false
-	}
-
-	route := appRoute.FindRoute(appId)
-	if route == nil {
-		log.WithFields(log.Fields{"appId": appId, "gid": group.gid, "cmd": Command(msg.cmd)}).Warning("不能分发消息到Group")
 		return false
 	}
 

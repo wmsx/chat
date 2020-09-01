@@ -15,7 +15,7 @@ const MSG_PUBLISH_GROUP  = 135
 
 func init() {
 	messageCreators[MSG_PUSH] = func() IMessage { return new(BatchPushMessage) }
-	messageCreators[MSG_UNSUBSCRIBE] = func()IMessage{return new(AppUserID)}
+	messageCreators[MSG_UNSUBSCRIBE] = func()IMessage{return new(UserID)}
 	messageCreators[MSG_SUBSCRIBE] = func() IMessage { return new(SubscribeMessage) }
 
 	messageCreators[MSG_PUBLISH] = func() IMessage { return new(AppMessage) }

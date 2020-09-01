@@ -6,14 +6,12 @@ import (
 )
 
 type Route struct {
-	appId   int64
 	mutex   sync.Mutex
 	clients map[int64]ClientSet
 }
 
-func NewRoute(appId int64) *Route {
+func NewRoute() *Route {
 	r := new(Route)
-	r.appId = appId
 	r.clients = make(map[int64]ClientSet)
 	return r
 }

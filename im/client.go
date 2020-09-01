@@ -211,16 +211,9 @@ func GetUserPreferences(appId int64, uid int64) (int, bool, error) {
 }
 
 func (client *Client) AddClient() {
-	route := appRoute.FindOrAddRoute(client.appId)
 	route.AddClient(client)
 }
 
 func (client *Client) RemoveClient() {
-	route := appRoute.FindRoute(client.appId)
-	if route == nil {
-		log.Warning("can't find app route")
-		return
-	}
-
 	route.RemoveClient(client)
 }

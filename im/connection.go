@@ -62,9 +62,8 @@ func (client *Connection) EnqueueMessages(msgs []*Message) bool {
 }
 
 func (client *Connection) SendMessage(uid int64, msg *Message) {
-	appId := client.appId
-	PublishMessage(appId, uid, msg)
-	DispatchMessageToPeer(msg, uid, appId, client.Client())
+	PublishMessage(uid, msg)
+	DispatchMessageToPeer(msg, uid, client.Client())
 }
 
 func (client *Connection) sendGroupMessage(group *Group, msg *Message) {

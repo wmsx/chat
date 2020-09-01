@@ -49,8 +49,11 @@ func readConfig() *Config {
 
 	config.mysqlDatasource = "root:mingchaonaxieshi@tcp(sx-mysql:3306)/sx_chat"
 
-	config.groupStorageRpcAddrs = []string{"sx-ims:13333"}
-	config.groupRouteAddrs = []string{"sx-imr:4444"}
+	config.storageRpcAddrs = []string{"sx-ims:13333"}
+	config.groupStorageRpcAddrs = []string{"sx-imgs:13333"}
+
+	config.routeAddrs = []string{"sx-imr:4444"}
+	config.groupRouteAddrs = []string{"sx-imgr:4444"}
 
 	config.groupDeliverCount = 1
 	config.pendingRoot = "/data/im/pending"

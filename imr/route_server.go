@@ -105,7 +105,7 @@ func IsUserOnline(uid int64) bool {
 	return false
 }
 
-func FindClientSet(id *AppUserID) ClientSet {
+func FindClientSet(id *UserID) ClientSet {
 	mutex.Lock()
 	defer mutex.Unlock()
 
