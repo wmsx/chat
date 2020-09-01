@@ -19,7 +19,7 @@ type RouteConfig struct {
 func readConfig() *RouteConfig  {
 	config := new(RouteConfig)
 
-	config.listen = ":4444"
+	config.listen = ":4445"
 
 
 	//config.logFilename = "/Users/zengqiang96/logs/imr.log"

@@ -44,19 +44,20 @@ func readConfig() *Config {
 	config := new(Config)
 	config.port = 23000
 
-	config.redisAddress = "sx-redis:6379"
+	config.redisAddress = "192.169.0.199:6379"
 	config.redisPassword = "mingchaonaxieshi"
 
-	config.mysqlDatasource = "root:mingchaonaxieshi@tcp(sx-mysql:3306)/sx_chat"
+	config.mysqlDatasource = "root:mingchaonaxieshi@tcp(192.169.0.199:3306)/sx_chat"
 
-	config.storageRpcAddrs = []string{"sx-ims:13333"}
-	config.groupStorageRpcAddrs = []string{"sx-imgs:13333"}
+	config.storageRpcAddrs = []string{"127.0.0.1:13333"}
+	config.groupStorageRpcAddrs = []string{"127.0.0.1:13334"}
 
-	config.routeAddrs = []string{"sx-imr:4444"}
-	config.groupRouteAddrs = []string{"sx-imgr:4444"}
+	config.routeAddrs = []string{"127.0.0.1:4444"}
+	config.groupRouteAddrs = []string{"127.0.0.1:4445"}
 
 	config.groupDeliverCount = 1
-	config.pendingRoot = "/data/im/pending"
+	//config.pendingRoot = "/data/im/pending"
+	config.pendingRoot = "/Users/zengqiang96/im/pending"
 
 	//config.logFilename = "/Users/zengqiang96/logs/im.log"
 	config.logAge = 30
