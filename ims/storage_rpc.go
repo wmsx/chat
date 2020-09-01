@@ -4,7 +4,6 @@ package main
 
 // 点对点消息
 type PeerMessage struct {
-	AppID    int64
 	UID      int64
 	DeviceID int64
 	Cmd      int32
@@ -12,7 +11,6 @@ type PeerMessage struct {
 }
 
 type SyncHistory struct {
-	AppID     int64
 	UID       int64
 	DeviceID  int64
 	LastMsgID int64
@@ -32,7 +30,6 @@ type HistoryMessage struct {
 }
 
 type PeerGroupMessage struct {
-	AppId    int64
 	Members  []int64
 	DeviceID int64
 	Cmd      int32
@@ -40,7 +37,6 @@ type PeerGroupMessage struct {
 }
 
 type GroupMessage struct {
-	AppId    int64
 	GroupId  int64
 	DeviceID int64
 	Cmd      int32
@@ -48,7 +44,6 @@ type GroupMessage struct {
 }
 
 type SyncGroupHistory struct {
-	AppId     int64
 	UID       int64
 	DeviceID  int64
 	GroupId   int64

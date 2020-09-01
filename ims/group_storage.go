@@ -11,7 +11,6 @@ import (
 const GROUP_INDEX_FILE_NAME = "group_index.v2"
 
 type GroupId struct {
-	appId int64
 	gid   int64
 }
 
@@ -33,20 +32,19 @@ func NewGroupStorage(f *StorageFile) *GroupStorage {
 	return storage
 }
 
-func (storage *GroupStorage) SaveGroupMessage(appId, gid, deviceID int64, msg *Message) (int64, int64) {
+func (storage *GroupStorage) SaveGroupMessage(gid, deviceID int64, msg *Message) (int64, int64) {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
 
 	msgId := storage.saveMessage(msg)
 
-	index := storage.getGroupIndex(appId, gid)
+	index := storage.getGroupIndex(gid)
 
 	lastId := index.lastId
 	lastBatchId := index.lastBatchId
 	lastSeqId := index.lastSeqId
 
 	off := OfflineMessage{}
-	off.appId = appId
 	off.receiver = gid
 	off.msgId = msgId
 	off.deviceID = deviceID
@@ -63,12 +61,12 @@ func (storage *GroupStorage) SaveGroupMessage(appId, gid, deviceID int64, msg *M
 		lastBatchId = lastId
 	}
 	groupIndex := &GroupIndex{lastMsgId: msgId, lastId: lastId, lastBatchId: lastBatchId, lastSeqId: lastSeqId}
-	storage.setGroupIndex(appId, gid, groupIndex)
+	storage.setGroupIndex(gid, groupIndex)
 	return msgId, index.lastMsgId
 }
 
-func (storage *GroupStorage) getGroupIndex(appId, gid int64) *GroupIndex {
-	id := GroupId{appId: appId, gid: gid}
+func (storage *GroupStorage) getGroupIndex(gid int64) *GroupIndex {
+	id := GroupId{gid: gid}
 	if groupIndex, ok := storage.messageIndex[id]; ok {
 		return groupIndex
 	}
@@ -76,8 +74,8 @@ func (storage *GroupStorage) getGroupIndex(appId, gid int64) *GroupIndex {
 
 }
 
-func (storage *GroupStorage) setGroupIndex(appId, gid int64, index *GroupIndex) {
-	id := GroupId{appId: appId, gid: gid}
+func (storage *GroupStorage) setGroupIndex(gid int64, index *GroupIndex) {
+	id := GroupId{gid: gid}
 	storage.messageIndex[id] = index
 	if index.lastId > storage.lastId {
 		storage.lastId = index.lastId
@@ -104,7 +102,6 @@ func (storage *Storage) saveGroupIndex(messageIndex map[GroupId]*GroupIndex) {
 	buffer := new(bytes.Buffer)
 	index := 0
 	for id, value := range messageIndex {
-		binary.Write(buffer, binary.BigEndian, id.appId)
 		binary.Write(buffer, binary.BigEndian, id.gid)
 		binary.Write(buffer, binary.BigEndian, value.lastMsgId)
 		binary.Write(buffer, binary.BigEndian, value.lastId)
@@ -148,9 +145,9 @@ func (storage *Storage) saveGroupIndex(messageIndex map[GroupId]*GroupIndex) {
 
 //获取所有消息id大于msgid的消息
 //ts:入群时间
-func (storage *GroupStorage) LoadGroupHistoryMessage(appId, uid, gid, msgId int64, ts int32, limit int) ([]*EMessage, int64) {
+func (storage *GroupStorage) LoadGroupHistoryMessage(uid, gid, msgId int64, ts int32, limit int) ([]*EMessage, int64) {
 	log.WithFields(log.Fields{"msgId": msgId, "ts": ts}).Info("加载群组历史消息")
-	messageIndex := storage.getGroupIndex(appId, gid)
+	messageIndex := storage.getGroupIndex(gid)
 	lastId := messageIndex.lastId
 
 	var lastMsgId int64

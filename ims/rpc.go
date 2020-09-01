@@ -3,12 +3,12 @@ package main
 func SavePeerMessage(addr string, m *PeerMessage) ([2]int64, error) {
 	msg := &Message{cmd: int(m.Cmd), version: DEFAULT_VERSION}
 	msg.FromData(m.Raw)
-	msgId, prevMsgId := storage.SavePeerMessage(m.AppID, m.UID, m.DeviceID, msg)
+	msgId, prevMsgId := storage.SavePeerMessage(m.UID, m.DeviceID, msg)
 	return [2]int64{msgId, prevMsgId}, nil
 }
 
 func SyncMessage(addr string, syncKey *SyncHistory) *PeerHistoryMessage {
-	messages, lastMsgId, hasMore := storage.LoadHistoryMessages(syncKey.AppID, syncKey.UID, syncKey.LastMsgID, config.Limit, config.hardLimit)
+	messages, lastMsgId, hasMore := storage.LoadHistoryMessages( syncKey.UID, syncKey.LastMsgID, config.Limit, config.hardLimit)
 
 	historyMessages := make([]*HistoryMessage, 0, 10)
 
@@ -29,7 +29,7 @@ func SyncMessage(addr string, syncKey *SyncHistory) *PeerHistoryMessage {
 func SavePeerGroupMessage(addr string, m *PeerGroupMessage) ([]int64, error) {
 	msg := &Message{cmd: int(m.Cmd), version: DEFAULT_VERSION}
 	msg.FromData(m.Raw)
-	r := storage.SavePeerGroupMessage(m.AppId, m.Members, m.DeviceID, msg)
+	r := storage.SavePeerGroupMessage(m.Members, m.DeviceID, msg)
 	return r, nil
 }
 
@@ -37,12 +37,12 @@ func SaveGroupMessage(addr string, m *GroupMessage) ([2]int64, error) {
 	msg := &Message{cmd: int(m.Cmd), version: DEFAULT_VERSION}
 	msg.FromData(m.Raw)
 
-	msgId, prevMsgId := storage.SaveGroupMessage(m.AppId, m.GroupId, m.DeviceID, msg)
+	msgId, prevMsgId := storage.SaveGroupMessage(m.GroupId, m.DeviceID, msg)
 	return [2]int64{msgId, prevMsgId}, nil
 }
 
 func SyncGroupMessage(addr string, syncKey *SyncGroupHistory) *GroupHistoryMessage {
-	messages, lastMsgId := storage.LoadGroupHistoryMessage(syncKey.AppId, syncKey.UID, syncKey.GroupId, syncKey.LastMsgId, syncKey.Timestamp, GROUP_OFFLINE_LIMIT)
+	messages, lastMsgId := storage.LoadGroupHistoryMessage(syncKey.UID, syncKey.GroupId, syncKey.LastMsgId, syncKey.Timestamp, GROUP_OFFLINE_LIMIT)
 
 	historyMessages := make([]*HistoryMessage, 0, 10)
 	for _, emsg := range messages {

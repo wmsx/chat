@@ -15,7 +15,6 @@ const BATCH_SIZE = 1000
 const PEER_INDEX_FILE_NAME = "peer_index.v3"
 
 type UserId struct {
-	appId int64
 	uid   int64
 }
 
@@ -44,12 +43,12 @@ func NewPeerStorage(f *StorageFile) *PeerStorage {
 	return storage
 }
 
-func (storage *PeerStorage) SavePeerMessage(appId, receiver, deviceID int64, msg *Message) (int64, int64) {
+func (storage *PeerStorage) SavePeerMessage(receiver, deviceID int64, msg *Message) (int64, int64) {
 	storage.mutex.Lock()
 	defer storage.mutex.Unlock()
 	msgId := storage.saveMessage(msg)
 
-	userIndex := storage.getPeerIndex(appId, receiver)
+	userIndex := storage.getPeerIndex(receiver)
 
 	lastId := userIndex.lastId
 	lastPeerId := userIndex.lastPeerId
@@ -57,7 +56,6 @@ func (storage *PeerStorage) SavePeerMessage(appId, receiver, deviceID int64, msg
 	lastSeqId := userIndex.lastSeqId
 
 	off := &OfflineMessage{
-		appId:          appId,
 		receiver:       receiver,
 		msgId:          msgId,
 		deviceID:       deviceID,
@@ -86,14 +84,14 @@ func (storage *PeerStorage) SavePeerMessage(appId, receiver, deviceID int64, msg
 
 	ui := &UserIndex{lastMsgId: msgId, lastId: lastId, lastPeerId: lastPeerId, lastBatchId: lastBatchId, lastSeqId: lastSeqId}
 	log.Info("receiver: ", receiver, " userIndex: ", ui)
-	storage.setPeerIndex(appId, receiver, ui)
+	storage.setPeerIndex(receiver, ui)
 	return msgId, userIndex.lastMsgId
 }
 
-func (storage *PeerStorage) SavePeerGroupMessage(appId int64, members []int64, deviceID int64, msg *Message) []int64 {
+func (storage *PeerStorage) SavePeerGroupMessage(members []int64, deviceID int64, msg *Message) []int64 {
 	r := make([]int64, 0, len(members)*2)
 	for _, receiver := range members {
-		msgId, prevMsgId := storage.SavePeerMessage(appId, receiver, deviceID, msg)
+		msgId, prevMsgId := storage.SavePeerMessage(receiver, deviceID, msg)
 		r = append(r, msgId)
 		r = append(r, prevMsgId)
 	}
@@ -104,15 +102,15 @@ func (storage *PeerStorage) isGroupMessage(msg *Message) bool {
 	return msg.cmd == MSG_GROUP_IM || msg.flag&MESSAGE_FLAG_GROUP != 0
 }
 
-func (storage *PeerStorage) getPeerIndex(appId, receiver int64) *UserIndex {
-	id := UserId{appId, receiver}
+func (storage *PeerStorage) getPeerIndex(receiver int64) *UserIndex {
+	id := UserId{receiver}
 	if ui, ok := storage.messageIndex[id]; ok {
 		return ui
 	}
 	return &UserIndex{}
 }
-func (storage *PeerStorage) setPeerIndex(appId, receiver int64, ui *UserIndex) {
-	id := UserId{appId, receiver}
+func (storage *PeerStorage) setPeerIndex(receiver int64, ui *UserIndex) {
+	id := UserId{receiver}
 	storage.messageIndex[id] = ui
 
 	if ui.lastId > storage.lastId {
@@ -120,11 +118,11 @@ func (storage *PeerStorage) setPeerIndex(appId, receiver int64, ui *UserIndex) {
 	}
 }
 
-func (storage *PeerStorage) LoadHistoryMessages(appId int64, receiver int64, syncMsgId int64, limit int, hardLimit int) ([]*EMessage, int64, bool) {
+func (storage *PeerStorage) LoadHistoryMessages(receiver int64, syncMsgId int64, limit int, hardLimit int) ([]*EMessage, int64, bool) {
 	var lastMsgId int64
 	var lastOfflineMsgId int64
 
-	msgIndex := storage.getPeerIndex(appId, receiver)
+	msgIndex := storage.getPeerIndex(receiver)
 
 	lastBatchId := msgIndex.lastBatchId
 
@@ -202,8 +200,8 @@ func (storage *PeerStorage) LoadHistoryMessages(appId int64, receiver int64, syn
 	}
 
 	if len(messages) > 1000 {
-		log.Warningf("appid:%d uid:%d sync msgid:%d history message overflow:%d",
-			appId, receiver, syncMsgId, len(messages))
+		log.Warningf("uid:%d sync msgid:%d history message overflow:%d",
+			receiver, syncMsgId, len(messages))
 	}
 
 	var hasMore bool
@@ -235,7 +233,6 @@ func (storage *PeerStorage) savePeerIndex(messageIndex map[UserId]*UserIndex) {
 	buffer := new(bytes.Buffer)
 	index := 0
 	for id, value := range messageIndex {
-		binary.Write(buffer, binary.BigEndian, id.appId)
 		binary.Write(buffer, binary.BigEndian, id.uid)
 		binary.Write(buffer, binary.BigEndian, value.lastMsgId)
 		binary.Write(buffer, binary.BigEndian, value.lastId)
@@ -332,7 +329,7 @@ func (storage *PeerStorage) execMessage(msg *Message, msgId int64) {
 		off := msg.body.(*OfflineMessage)
 		lastPeerId := msgId
 
-		index := storage.getPeerIndex(off.appId, off.receiver)
+		index := storage.getPeerIndex(off.receiver)
 		if (msg.flag & MESSAGE_FLAG_GROUP) != 0 {
 			lastPeerId = index.lastPeerId
 		}
@@ -343,7 +340,7 @@ func (storage *PeerStorage) execMessage(msg *Message, msgId int64) {
 		}
 
 		ui := &UserIndex{off.msgId, msgId, lastPeerId, lastBatchId, lastSeqId}
-		storage.setPeerIndex(off.appId, off.receiver, ui)
+		storage.setPeerIndex(off.receiver, ui)
 	}
 
 }
@@ -379,7 +376,6 @@ func (storage *PeerStorage) readPeerIndex() bool {
 			var peerMsgId int64
 			var batchId int64
 			var seqId int64
-			binary.Read(buffer, binary.BigEndian, &id.appId)
 			binary.Read(buffer, binary.BigEndian, &id.uid)
 			binary.Read(buffer, binary.BigEndian, &lastMsgId)
 			binary.Read(buffer, binary.BigEndian, &lastId)
@@ -387,7 +383,7 @@ func (storage *PeerStorage) readPeerIndex() bool {
 			binary.Read(buffer, binary.BigEndian, &batchId)
 			binary.Read(buffer, binary.BigEndian, &seqId)
 			ui := &UserIndex{lastMsgId, lastId, peerMsgId, batchId, seqId}
-			storage.setPeerIndex(id.appId, id.uid, ui)
+			storage.setPeerIndex(id.uid, ui)
 		}
 	}
 	return true

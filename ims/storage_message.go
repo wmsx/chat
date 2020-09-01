@@ -68,7 +68,6 @@ func (emsg *EMessage) FromData(buff []byte) bool {
 }
 
 type OfflineMessage struct {
-	appId          int64
 	receiver       int64 //用户id or 群组id
 	msgId          int64 //消息本体的id
 	deviceID       int64
@@ -80,7 +79,6 @@ type OfflineMessage struct {
 
 func (off *OfflineMessage) ToData() []byte {
 	buffer := new(bytes.Buffer)
-	binary.Write(buffer, binary.BigEndian, off.appId)
 	binary.Write(buffer, binary.BigEndian, off.receiver)
 	binary.Write(buffer, binary.BigEndian, off.msgId)
 	binary.Write(buffer, binary.BigEndian, off.deviceID)
@@ -92,11 +90,10 @@ func (off *OfflineMessage) ToData() []byte {
 }
 
 func (off *OfflineMessage) FromData(buff []byte) bool {
-	if len(buff) < 64 {
+	if len(buff) < 56 {
 		return false
 	}
 	buffer := bytes.NewBuffer(buff)
-	binary.Read(buffer, binary.BigEndian, &off.appId)
 	binary.Read(buffer, binary.BigEndian, &off.receiver)
 	binary.Read(buffer, binary.BigEndian, &off.msgId)
 	binary.Read(buffer, binary.BigEndian, &off.deviceID)
