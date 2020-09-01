@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func main()  {
+func main2()  {
 	runtime.GOMAXPROCS(4)
 	seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	redisPool = NewRedisPool(redisAddress, redisPassword, redisDB)

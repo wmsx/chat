@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const redisAddress = "127.0.0.1:6379"
+const redisAddress = "192.168.0.199:6379"
 const redisPassword = "mingchaonaxieshi"
 const redisDB = 0
 

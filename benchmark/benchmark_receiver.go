@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func main() {
+func mainx() {
 	runtime.GOMAXPROCS(4)
 
 	seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
