@@ -25,8 +25,11 @@ type StorageConfig struct {
 func readStorageConf() *StorageConfig {
 	config := new(StorageConfig)
 
-	config.rpcListen = ":13333"
-	config.storageRoot = "/Users/zengqiang96/ims"
+	//config.rpcListen = ":13333"
+	//config.storageRoot = "/Users/zengqiang96/ims"
+
+	config.rpcListen = ":13334"
+	config.storageRoot = "/Users/zengqiang96/imgs"
 
 	//config.logFilename = "/Users/zengqiang96/logs/ims.log"
 	config.logAge = 30

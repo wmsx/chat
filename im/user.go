@@ -15,15 +15,15 @@ func LoadUserAccessToken(token string) (int64, error) {
 
 	err := conn.Send("EXISTS", key)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 	err = conn.Send("HMGET", key, "user_id", "app_id")
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 	err = conn.Flush()
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 	exists, err := redis.Bool(conn.Receive())
 	if err != nil {
