@@ -123,11 +123,6 @@ func DispatchMessageToPeer(msg *Message, uid int64, client *Client) bool {
 	return true
 }
 
-func PushMessage(appId, receiver int64, m *Message) {
-	channel := GetChannel(receiver)
-	channel.Push(appId, []int64{receiver}, m)
-}
-
 // 根据用户id到一台route server上，
 func GetChannel(receiver int64) *Channel {
 	index := receiver % int64(len(routeChannels))

@@ -19,10 +19,6 @@ RUN apk --no-cache add ca-certificates tzdata
 
 ENV TZ Asia/Shanghai
 
-#RUN apk --no-cache tzdata \
-#    && ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-#    && echo "Asia/Shanghai" > /etc/timezone
-
 RUN mkdir /app
 RUN mkdir -p /data/im/pending
 WORKDIR /app
