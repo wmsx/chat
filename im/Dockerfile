@@ -23,6 +23,9 @@ WORKDIR /app
 
 COPY --from=builder /app/sx-im .
 
+ENV TIME_ZONE=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
+
 EXPOSE 23000
 
 ENTRYPOINT ["/app/sx-im"]
