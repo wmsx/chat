@@ -17,8 +17,11 @@ FROM alpine:latest
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk --no-cache add ca-certificates tzdata
 
-ENV TIME_ZONE=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
+ENV TZ Asia/Shanghai
+
+#RUN apk --no-cache tzdata \
+#    && ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+#    && echo "Asia/Shanghai" > /etc/timezone
 
 RUN mkdir /app
 RUN mkdir -p /data/im/pending
