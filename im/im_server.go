@@ -112,8 +112,6 @@ func main() {
 	}
 	go SyncKeyService()
 
-	log.WithField("测试", "xx").Info("测试....")
-
 	ListenClient(config.port)
 	log.Info("exit")
 }
