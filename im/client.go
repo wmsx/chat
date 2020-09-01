@@ -160,6 +160,14 @@ func (client *Client) HandleAuthToken(login *AuthenticationToken, version int) {
 		log.WithFields(log.Fields{"token": login.token, "err": err}).Info("验证token失败")
 		msg := &Message{cmd: MSG_AUTH_STATUS, version: version, body: &AuthenticationStatus{status: 1}}
 		client.EnqueueMessage(msg)
+		return
+	}
+
+	if uid == 0 {
+		log.WithFields(log.Fields{"token": login.token}).Info("验证token失败 uid = 0")
+		msg := &Message{cmd: MSG_AUTH_STATUS, version: version, body: &AuthenticationStatus{status: 1}}
+		client.EnqueueMessage(msg)
+		return
 	}
 
 	if login.platformId != PLATFORM_WEB && len(login.deviceId) > 0 {
