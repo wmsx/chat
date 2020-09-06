@@ -10,7 +10,6 @@ import (
 
 type Group struct {
 	gid   int64
-	super bool // 超大群
 	mutex sync.Mutex
 
 	members map[int64]int64 //key:成员id value:入群时间|(mute<<31)
@@ -31,66 +30,31 @@ func (group *Group) GetMemberTimestamp(uid int64) int {
 	return int(ts & 0x7FFFFFFF)
 }
 
-func NewGroup(gid int64,  members map[int64]int64) *Group {
+func NewSuperGroup(gid int64, members map[int64]int64) *Group {
 	return &Group{
 		gid:     gid,
-		super:   false,
-		members: members,
-		ts:      int(time.Now().Unix()),
-	}
-}
-
-func NewSuperGroup(gid int64,  members map[int64]int64) *Group {
-	return &Group{
-		gid:     gid,
-		super:   true,
 		members: members,
 		ts:      int(time.Now().Unix()),
 	}
 }
 
 func LoadGroup(db *sql.DB, groupId int64) (*Group, error) {
-	stmtIns, err := db.Prepare("SELECT id, super FROM `group`  WHERE id = ? AND deleted = 0")
-	if err == mysql.ErrInvalidConn {
-		log.Info("db prepare error:", err)
-		stmtIns, err = db.Prepare("SELECT id, super FROM `group`  WHERE id = ? AND deleted = 0")
-	}
-	if err != nil {
-		log.Info("db prepare error:", err)
-		return nil, err
-	}
-
-	defer stmtIns.Close()
-
-	var group *Group
-	var id int64
-	var super int8
-	row := stmtIns.QueryRow(groupId)
-	err = row.Scan(&id, &super)
-
-	if err != nil {
-		return nil, err
-	}
 	members, err := LoadGroupMember(db, groupId)
 	if err != nil {
 		log.Info("error:", err)
 		return nil, err
 	}
 
-	if super != 0 {
-		group = NewSuperGroup(id, members)
-	} else {
-		group = NewGroup(id, members)
-	}
+	group := NewSuperGroup(groupId, members)
 	log.Info("load group success:", groupId)
 	return group, nil
 }
 
 func LoadGroupMember(db *sql.DB, groupId int64) (map[int64]int64, error) {
-	stmtIns, err := db.Prepare("SELECT uid, timestamp, mute FROM `group_member` WHERE group_id = ? AND deleted = 0 ")
+	stmtIns, err := db.Prepare("SELECT member_id, timestamp, mute FROM `t_discuss_group_member` WHERE group_id = ? AND deleted is null ")
 	if err == mysql.ErrInvalidConn {
 		log.Info("db prepare error:", err)
-		stmtIns, err = db.Prepare("SELECT uid, timestamp, mute FROM group_member WHERE group_id=? AND deleted=0")
+		stmtIns, err = db.Prepare("SELECT member_id, timestamp, mute FROM `t_discuss_group_member` WHERE group_id = ? AND deleted is null ")
 	}
 	if err != nil {
 		log.Info("db prepare error:", err)

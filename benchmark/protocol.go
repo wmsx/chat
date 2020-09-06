@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-const DEFAULT_VERSION = 2
+const DEFAULT_VERSION = 0
 
 const MSG_HEADER_SIZE = 12
 
@@ -94,7 +94,6 @@ func SendMessage(conn io.Writer, msg *Message) error {
 	}
 	return nil
 }
-
 
 //消息大小限制在1M
 func ReceiveStorageMessage(conn io.Reader) *Message {

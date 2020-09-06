@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-const DEFAULT_VERSION = 2
+const DEFAULT_VERSION = 0
 
 const MSG_HEADER_SIZE = 12
 
