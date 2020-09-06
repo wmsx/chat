@@ -34,7 +34,7 @@ func (client *GroupClient) HandleGroupIMMessage(message *Message) {
 	deliver := GetGroupMessageDeliver(msg.receiver)
 	group := deliver.LoadGroup(msg.receiver)
 	if group == nil {
-		log.Warning("can't find group:", msg.receiver)
+		log.Warning("查找不到Group:", msg.receiver)
 		return
 	}
 
