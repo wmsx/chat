@@ -45,7 +45,7 @@ func readConfig() *Config {
 	config.redisAddress = "sx-redis:6379"
 	config.redisPassword = "mingchaonaxieshi"
 
-	config.mysqlDatasource = "root:mingchaonaxieshi@tcp(sx-mysql:3306)/sx_chat"
+	config.mysqlDatasource = "root:mingchaonaxieshi@tcp(sx-mysql:3306)/group_svc"
 
 	config.storageRpcAddrs = []string{"sx-ims:13333"}
 	config.groupStorageRpcAddrs = []string{"sx-imgs:13333"}

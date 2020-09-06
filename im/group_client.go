@@ -24,6 +24,11 @@ func (client *GroupClient) HandleGroupIMMessage(message *Message) {
 	msg := message.body.(*IMMessage)
 	seq := message.seq
 
+	if client.uid == 0 {
+		log.Warning("客户端还没有完成认证")
+		return
+	}
+
 	msg.timestamp = int32(time.Now().Unix())
 
 	deliver := GetGroupMessageDeliver(msg.receiver)
