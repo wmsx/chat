@@ -9,7 +9,6 @@ const MSG_SUBSCRIBE = 130
 const MSG_UNSUBSCRIBE = 131
 const MSG_PUBLISH = 132
 
-const MSG_PUSH = 134
 const MSG_PUBLISH_GROUP  = 135
 
 

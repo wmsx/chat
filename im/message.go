@@ -72,10 +72,10 @@ func init() {
 	messageCreators[MSG_SYNC_GROUP_END] = func() IMessage { return new(GroupSyncKey) }
 	messageCreators[MSG_GROUP_SYNC_KEY] = func() IMessage { return new(GroupSyncKey) }
 	messageCreators[MSG_SYNC_GROUP_NOTIFY] = func() IMessage { return new(GroupSyncKey) }
+	messageCreators[MSG_ACK] = func() IMessage { return new(MessageACK) }
 
 	vmessageCreators[MSG_IM] = func() IVersionMessage { return new(IMMessage) }
 	vmessageCreators[MSG_GROUP_IM] = func() IVersionMessage { return new(IMMessage) }
-	vmessageCreators[MSG_ACK] = func() IVersionMessage { return new(MessageACK) }
 }
 
 type Command int
@@ -166,63 +166,39 @@ type IVersionMessage interface {
 }
 
 type IMMessage struct {
-	sender    int64
-	receiver  int64
-	timestamp int32
-	msgId     int32
-	content   string
+	sender      int64
+	receiver    int64
+	timestamp   int32
+	messageType int32
+	content     string
 }
 
 func (m *IMMessage) ToData(version int) []byte {
 	if version == 0 {
 		return m.ToDataV0()
-	} else {
-		return m.ToDataV2()
 	}
+	return nil
 }
 
 func (m *IMMessage) FromData(version int, buff []byte) bool {
 	if version == 0 {
 		return m.FromDataV0(buff)
-	} else {
-		return m.FromDataV2(buff)
 	}
+	return false
 }
 
 func (m *IMMessage) ToDataV0() []byte {
 	buffer := new(bytes.Buffer)
 	binary.Write(buffer, binary.BigEndian, m.sender)
 	binary.Write(buffer, binary.BigEndian, m.receiver)
-	binary.Write(buffer, binary.BigEndian, m.msgId)
-	buffer.Write([]byte(m.content))
-	buf := buffer.Bytes()
-	return buf
-}
-
-func (m *IMMessage) ToDataV2() []byte {
-	buffer := new(bytes.Buffer)
-	binary.Write(buffer, binary.BigEndian, m.sender)
-	binary.Write(buffer, binary.BigEndian, m.receiver)
 	binary.Write(buffer, binary.BigEndian, m.timestamp)
-	binary.Write(buffer, binary.BigEndian, m.msgId)
+	binary.Write(buffer, binary.BigEndian, m.messageType)
 	buffer.Write([]byte(m.content))
 	buf := buffer.Bytes()
 	return buf
 }
 
 func (m *IMMessage) FromDataV0(buff []byte) bool {
-	if len(buff) < 20 {
-		return false
-	}
-	buffer := bytes.NewBuffer(buff)
-	binary.Read(buffer, binary.BigEndian, &m.sender)
-	binary.Read(buffer, binary.BigEndian, &m.receiver)
-	binary.Read(buffer, binary.BigEndian, &m.msgId)
-	m.content = string(buff[20:])
-	return true
-}
-
-func (m *IMMessage) FromDataV2(buff []byte) bool {
 	if len(buff) < 24 {
 		return false
 	}
@@ -230,7 +206,7 @@ func (m *IMMessage) FromDataV2(buff []byte) bool {
 	binary.Read(buffer, binary.BigEndian, &m.sender)
 	binary.Read(buffer, binary.BigEndian, &m.receiver)
 	binary.Read(buffer, binary.BigEndian, &m.timestamp)
-	binary.Read(buffer, binary.BigEndian, &m.msgId)
+	binary.Read(buffer, binary.BigEndian, &m.messageType)
 	m.content = string(buff[24:])
 	return true
 }
@@ -311,22 +287,18 @@ type MessageACK struct {
 	status int8
 }
 
-func (ack *MessageACK) ToData(version int) []byte {
+func (ack *MessageACK) ToData() []byte {
 	buffer := new(bytes.Buffer)
 	binary.Write(buffer, binary.BigEndian, ack.seq)
-	if version > 1 {
-		binary.Write(buffer, binary.BigEndian, ack.status)
-	}
+	binary.Write(buffer, binary.BigEndian, ack.status)
 	buf := buffer.Bytes()
 	return buf
 }
 
-func (ack *MessageACK) FromData(version int, buff []byte) bool {
+func (ack *MessageACK) FromData(buff []byte) bool {
 	buffer := bytes.NewBuffer(buff)
 	binary.Read(buffer, binary.BigEndian, &ack.seq)
-	if version > 1 {
-		binary.Read(buffer, binary.BigEndian, &ack.status)
-	}
+	binary.Read(buffer, binary.BigEndian, &ack.status)
 	return true
 }
 
