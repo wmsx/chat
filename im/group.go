@@ -51,10 +51,10 @@ func LoadGroup(db *sql.DB, groupId int64) (*Group, error) {
 }
 
 func LoadGroupMember(db *sql.DB, groupId int64) (map[int64]int64, error) {
-	stmtIns, err := db.Prepare("SELECT member_id, timestamp, mute FROM `t_discuss_group_member` WHERE group_id = ? AND deleted is null ")
+	stmtIns, err := db.Prepare("SELECT member_id, timestamp, mute FROM `t_discuss_group_member` WHERE group_id = ? AND deleted_at is null ")
 	if err == mysql.ErrInvalidConn {
 		log.Info("db prepare error:", err)
-		stmtIns, err = db.Prepare("SELECT member_id, timestamp, mute FROM `t_discuss_group_member` WHERE group_id = ? AND deleted is null ")
+		stmtIns, err = db.Prepare("SELECT member_id, timestamp, mute FROM `t_discuss_group_member` WHERE group_id = ? AND deleted_at is null ")
 	}
 	if err != nil {
 		log.Info("db prepare error:", err)
