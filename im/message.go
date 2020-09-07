@@ -136,14 +136,12 @@ func (sync *Metadata) ToData() []byte {
 	buffer := new(bytes.Buffer)
 	binary.Write(buffer, binary.BigEndian, sync.syncKey)
 	binary.Write(buffer, binary.BigEndian, sync.prevSyncKey)
-	padding := [16]byte{}
-	buffer.Write(padding[:])
 	buf := buffer.Bytes()
 	return buf
 }
 
 func (sync *Metadata) FromData(buff []byte) bool {
-	if len(buff) < 32 {
+	if len(buff) < 16 {
 		return false
 	}
 
